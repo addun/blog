@@ -1,0 +1,28 @@
+---
+import { GitHubLink } from "@components/GitHubLink.tsx";
+import { PostIntro } from "@components/PostIntro.tsx";
+import Donation from "../components/Donation.astro";
+
+const { frontmatter } = Astro.props;
+
+const repositoryExists = !!frontmatter.repository;
+---
+
+<html>
+  <head>
+    <title>{frontmatter.title}</title>
+  </head>
+  <body>
+    <main class="container mx-auto">
+      <PostIntro frontmatter={frontmatter} />
+
+      {repositoryExists && <GitHubLink repository={frontmatter.repository} />}
+
+      <article class="prose lg:prose-xl max-w-none">
+        <slot />
+      </article>
+
+      <Donation />
+    </main>
+  </body>
+</html>

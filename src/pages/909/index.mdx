@@ -1,0 +1,261 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: How to create a tooltip with @angular/cdk
+author: CodeGen
+description: |
+  A tooltip is a small, informative message or hint that appears when a user hovers their mouse over an object,
+  such as a button, image, or hyperlink, on a website.
+  See how to create a simple but powerful tooltip directive using the `@angular/cdk` and `OverlayModule`.
+tags: ["@angular/cdk", "Angular", "Angular 16"]
+thumbnail: https://codegen.studio/wp-content/uploads/2022/08/cdk-320x180.png
+repository: tooltip
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Demo
+
+```html
+<button appTooltip="Hello from string">Tooltip as string</button>
+
+<svg [appTooltip]="templateForTooltip">
+  <!-- ... -->
+</svg>
+<ng-template #templateForTooltip> <strong>Hello</strong> from template </ng-template>
+```
+
+<Demo height={350} repository="tooltip" />
+
+
+{/* move to component */}
+
+## Angular CDK setup
+
+The first step is to add a library. Write the command below to add @angular/cdk to your project.
+
+```
+ng add @angular/cdk
+```
+
+```scss
+@import "~@angular/cdk/overlay-prebuilt.css";
+```
+
+The second step is to add overlay styles to the global stylesheet file (styles.scss).
+
+<Note type="IMPORTANT">
+
+This file is very small. This weight is around `1.2 kB`.
+
+</Note>
+
+<Note type="IMPORTANT">
+
+From `@angular/cdk@15` `OverlayModule` is not required to import anymore because `Overlay` is provided into `root`.
+
+</Note>
+
+## Creating directive
+
+The directive is responsible for creating a component above (or below if above is no place) an element. As you can see, a tooltip is created on focus or moveenter events. After blur or moveleave the tooltip is destroyed.
+
+```ts
+@Directive({
+  selector: "[appTooltip]",
+})
+export class TooltipDirective implements OnDestroy {
+  @Input() appTooltip!: string | TemplateRef<void>;
+
+  private overlayRef: OverlayRef | null = null;
+
+  constructor(
+    private element: ElementRef<HTMLElement>,
+    private overlay: Overlay,
+    private viewContainer: ViewContainerRef,
+  ) {}
+
+  @HostListener("mouseenter")
+  @HostListener("focus")
+  showTooltip(): void {
+    if (this.overlayRef?.hasAttached() === true) {
+      return;
+    }
+
+    this.attachTooltip();
+  }
+
+  @HostListener("mouseleave")
+  @HostListener("blur")
+  hideTooltip(): void {
+    if (this.overlayRef?.hasAttached() === true) {
+      this.overlayRef?.detach();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.overlayRef?.dispose();
+  }
+
+  private attachTooltip(): void {
+    if (this.overlayRef === null) {
+      const positionStrategy = this.getPositionStrategy();
+      this.overlayRef = this.overlay.create({ positionStrategy });
+    }
+
+    const injector = Injector.create({
+      providers: [
+        {
+          provide: TOOLTIP_DATA,
+          useValue: this.appTooltip,
+        },
+      ],
+    });
+    const component = new ComponentPortal(TooltipContainerComponent, this.viewContainer, injector);
+    this.overlayRef.attach(component);
+  }
+
+  private getPositionStrategy(): PositionStrategy {
+    return this.overlay
+      .position()
+      .flexibleConnectedTo(this.element)
+      .withPositions([
+        {
+          originX: "center",
+          originY: "top",
+          overlayX: "center",
+          overlayY: "bottom",
+          panelClass: "top",
+        },
+        {
+          originX: "center",
+          originY: "bottom",
+          overlayX: "center",
+          overlayY: "top",
+          panelClass: "bottom",
+        },
+      ]);
+  }
+}
+```
+
+<Note type="HELPFUL">
+
+Take a look at passing data between the component and the directive. To do it, I used Injector with a custom provider.
+
+</Note>
+
+<Note type='HELPFUL'>
+
+Look at `getPositionStrategy` function
+
+- in `flexibleConnectedTo` I defined a position connection between the directive and the tooltip,
+- In `withPositions` I defined available positions. If the first position does not fit on a screen, then use the second one
+
+</Note>
+
+## Tooltip container component
+
+```ts
+@Component({
+  selector: "app-tooltip-container",
+  templateUrl: "./tooltip-container.component.html",
+  styleUrls: ["./tooltip-container.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TooltipContainerComponent {
+  get asString(): string | false {
+    return typeof this.tooltipData === "string" ? this.tooltipData : false;
+  }
+
+  get asTemplate(): TemplateRef<void> | false {
+    return this.tooltipData instanceof TemplateRef ? this.tooltipData : false;
+  }
+
+  constructor(@Inject(TOOLTIP_DATA) public tooltipData: TooltipData) {}
+}
+```
+
+```html
+<ng-container *ngIf="asString as string"> {{ string }} </ng-container>
+
+<ng-container *ngIf="asTemplate as template">
+  <ng-template [ngTemplateOutlet]="template"></ng-template>
+</ng-container>
+```
+
+<Note type='IMPORTANT'>
+
+Take a look at asString and asTemplate getters. In HTML is not possible to cast a type, so I used a pattern with `*ngIf`.
+
+</Note>
+
+### Adding styles for tooltip
+
+```scss
+:host {
+  display: block;
+  max-width: 12rem;
+  padding: 0.7rem;
+  font-size: 0.85rem;
+  color: #fff;
+  background: #000;
+  border-radius: 0.25rem;
+  box-sizing: border-box;
+}
+
+:host-context(.top) {
+  margin-bottom: 0.5rem;
+}
+
+:host-context(.bottom) {
+  margin-top: 0.5rem;
+}
+```
+
+<Note type='HELPFUL'>
+
+Styles to make a tooltip float are shipped by global styles, so I do not need to it on my own hands.
+
+</Note>
+
+<Note type='HELPFUL'>
+
+Info about the current position of the tooltip I took from CSS classes like top and bottom (defined in a `panelClass` parameter in `getPositionStrategy` function). Thanks to that, I can apply different styles if the tooltip is above or below the element.
+
+</Note>
+
+## Q&A
+
+### How to implement a fallback position strategy
+
+```ts
+  private getPositionStrategy(): PositionStrategy {
+    return this.overlay
+      .position()
+      .flexibleConnectedTo(this.element)
+      .withPositions([
+        {
+          originX: 'center',
+          originY: 'top',
+          overlayX: 'center',
+          overlayY: 'bottom',
+          panelClass: 'top',
+        },
+        {
+          originX: 'center',
+          originY: 'bottom',
+          overlayX: 'center',
+          overlayY: 'top',
+          panelClass: 'bottom',
+        },
+      ]);
+  }
+```
+
+As you can see, we have two positions (array with two elements).
+That means the overlay will try to put an element using the first position.
+When the element will not fit on the screen then the overlay will take the second position.
+If the second will not fit, the overlay will take the third one (and so on).
+When there are no more positions then the last one will be applied.
+All that means, **if you want to define a fallback position strategy just add the new position into the end of the array**.

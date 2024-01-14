@@ -1,0 +1,92 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: Combine multiple *ngIf with an async pipe into one
+author: CodeGen
+description: |
+  Try to avoid using many async pipes in a single *ngIf directive.
+  Move logic to use RxJs operators instead.
+  See examples of how to do it correctly.
+tags: ["Angular", "Angular 15", "RxJS"]
+thumbnail: https://codegen.studio/wp-content/uploads/2022/08/angular-320x180.png
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Concat many observables object into one variable
+
+Using many `async` pipes in single `*ngIf` means less readable code and it reduces performance because `async` is a pure pipe.
+
+```ts
+import { Component } from "@angular/core";
+import { of } from "rxjs";
+
+@Component({
+  template: ` <ng-container *ngIf="(pet$ | async) && !(cat$ | async)"> ... </ng-container> `,
+})
+export class ExampleComponent {
+  pet$ = of(true);
+  cat$ = of(false);
+}
+```
+
+A better idea is to use RxJs operators to combine multiple conditions into a single observable object. For example, you can use `combineLatest` operator.
+
+```ts
+import { Component } from "@angular/core";
+import { of, combineLatest, map } from "rxjs";
+
+@Component({
+  template: ` <ng-container *ngIf="show$ | async"> ... </ng-container> `,
+})
+export class ExampleComponent {
+  private pet$ = of(true);
+  private cat$ = of(false);
+
+  show$ = combineLatest([this.pet$, this.cat$]).pipe(map(([pet, cat]) => pet && !cat));
+}
+```
+
+## Return null to hide section if conditions are not fulfilled
+
+Using many` *ngIf` unnecessary increases a template’s size and complexity.
+
+```ts
+import { Component } from "@angular/core";
+import { of } from "rxjs";
+
+@Component({
+  template: `
+    <ng-container *ngIf="users$ | async as users">
+      <ng-container *ngIf="users.length > 1 && users.length < 5"> ... </ng-container>
+    </ng-container>
+  `,
+})
+export class ExampleComponent {
+  users$ = of(["Alice", "Bob", "Charlie", "Dave"]);
+}
+```
+
+You can check conditions inside component logic, create an observable object and return null if conditions are not fulfilled.
+
+```ts
+import { Component } from "@angular/core";
+import { map, of } from "rxjs";
+
+@Component({
+  template: ` <ng-container *ngIf="show$ | async as users"> </ng-container> `,
+})
+export class ExampleComponent {
+  users$ = of(["Alice", "Bob", "Charlie", "Dave"]);
+  show$ = this.users$.pipe(map((users) => (this.showSection(users) ? users : null)));
+
+  private showSection(users: string[]): boolean {
+    return users.length > 1 && users.length < 5;
+  }
+}
+```
+
+<Note type="IMPORTANT">
+  Section won’t be shown because `*ngIf` only render template when value is truthy. Than means when we return `null`
+  section will be hidden.
+</Note>
