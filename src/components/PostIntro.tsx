@@ -14,7 +14,7 @@ export function PostIntro({ frontmatter }: Props) {
   const { title, description, tags, thumbnail } = frontmatter;
 
   return (
-    <header className="flex my-20 flex-col gap-12">
+    <header className="flex my-6 flex-col gap-12">
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-[3fr_2fr] ">
         <div className="order-2 lg:order-none">
           <h1 className="text-4xl m-0 font-bold">{title}</h1>

@@ -9,11 +9,11 @@ const allPosts = await Astro.glob("./**/*.mdx");
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
+    <meta charset="UTF-8" />
     <title>Astro</title>
   </head>
   <body class="container mx-auto">
-    <main class="mx-auto my-12 flex flex-col gap-16">
+    <main class="mx-2 md:mx-4 my-12 flex flex-col gap-16">
       {allPosts.map((post) => <PostListItem {post} />)}
     </main>
   </body>
