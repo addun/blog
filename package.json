@@ -24,6 +24,7 @@
     "@angular/platform-server": "^17.0.9",
     "@astrojs/check": "^0.4.1",
     "@astrojs/mdx": "^2.0.4",
+    "@astrojs/netlify": "^4.1.1",
     "@astrojs/react": "^3.0.9",
     "@astrojs/tailwind": "^5.1.0",
     "@types/react": "^18.2.47",

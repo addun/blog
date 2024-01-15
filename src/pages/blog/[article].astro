@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import { getCollection } from "astro:content";
 import { PostIntro } from "@components/PostIntro";
 import Donation from "@components/Donation.astro";
@@ -8,7 +10,7 @@ export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");
 
   return blogEntries.map((entry) => ({
-    params: { slug: entry.slug },
+    params: { article: entry.slug },
     props: { entry },
   }));
 }

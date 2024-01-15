@@ -1,5 +1,6 @@
 import type { CollectionEntry } from "astro:content";
 import { TagList } from "./TagList.tsx";
+import { getBlogPostPath } from "../utils/blog-id.ts";
 
 interface Props {
   blogEntry: CollectionEntry<"blog">;
@@ -7,11 +8,11 @@ interface Props {
 
 export function PostListItem({ blogEntry }: Props) {
   const { title, description, thumbnail, tags } = blogEntry.data;
-  const link = blogEntry.slug;
+  const link = getBlogPostPath(blogEntry);
 
   return (
     <article className="grid gap-4 grid-cols-1 lg:grid-cols-[320px_auto]">
-      <a href={link} className="">
+      <a href={link}>
         <img src={thumbnail} alt="" className="w-full rounded-xl" />
       </a>
 
