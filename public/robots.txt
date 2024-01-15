@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://codegen.studio/sitemap-index.xml

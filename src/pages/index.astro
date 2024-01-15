@@ -3,21 +3,13 @@ export const prerender = true;
 
 import { PostListItem } from "../components/PostListItem.tsx";
 import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
 
 const blogEntries = await getCollection("blog");
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta charset="UTF-8" />
-    <title>Astro</title>
-  </head>
-  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
-    <main class="mx-2 md:mx-4 my-12 flex flex-col gap-16">
-      {blogEntries.map((blogEntry) => <PostListItem {blogEntry} />)}
-    </main>
-  </body>
-</html>
+<BaseLayout title="Home page">
+  <main class="mx-2 md:mx-4 my-12 flex flex-col gap-16">
+    {blogEntries.map((blogEntry) => <PostListItem {blogEntry} />)}
+  </main>
+</BaseLayout>

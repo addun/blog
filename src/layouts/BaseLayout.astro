@@ -1,0 +1,21 @@
+---
+interface Props {
+  title: string;
+}
+
+let { title } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="viewport" content="width=device-width" />
+    <meta charset="UTF-8" />
+    <title>{title}</title>
+  </head>
+  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
+    <slot />
+  </body>
+</html>

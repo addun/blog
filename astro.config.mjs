@@ -2,12 +2,12 @@ import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
-
 import netlify from "@astrojs/netlify";
+import sitemap from "@astrojs/sitemap";
 
-// https://astro.build/config
 export default defineConfig({
-  integrations: [mdx(), tailwind(), react()],
+  integrations: [mdx(), tailwind(), react(), sitemap()],
   output: "server",
-  adapter: netlify()
+  site: "https://codegen.studio",
+  adapter: netlify(),
 });
