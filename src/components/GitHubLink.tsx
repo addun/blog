@@ -1,5 +1,3 @@
-import React from "react";
-
 import { Note } from "./Note";
 
 interface Props {

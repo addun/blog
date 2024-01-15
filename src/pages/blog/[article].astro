@@ -23,7 +23,7 @@ const { description, tags, thumbnail, title, repository } = Astro.props.entry.da
 
 <BaseLayout title={title}>
   <main class="mx-2 md:mx-4">
-    <PostIntro title={title} description={description} tags={tags} thumbnail={thumbnail} />
+    <PostIntro title={title} description={description} tags={tags.map((tag) => tag.slug)} thumbnail={thumbnail} />
 
     {!!repository && <GitHubLink repository={repository} />}
 

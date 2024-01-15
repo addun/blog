@@ -1,4 +1,3 @@
-import React from "react";
 import { TagIcon } from "./icons/TagIcon";
 
 interface Props {
@@ -7,9 +6,9 @@ interface Props {
 
 export function PostTag({ tag }: Props) {
   return (
-    <span className="flex gap-1 flex-nowrap items-center text-orange-400">
+    <a href={"/tags/" + tag} className="flex gap-1 flex-nowrap items-center text-orange-400">
       <TagIcon />
       <span>{tag}</span>
-    </span>
+    </a>
   );
 }

@@ -22,7 +22,7 @@ export function PostListItem({ blogEntry }: Props) {
             <a href={link}>{title}</a>
           </h4>
 
-          <TagList tags={tags} />
+          <TagList tags={tags.map((t) => t.slug)} />
 
           <div className="text-justify mt-2">{description}</div>
         </div>

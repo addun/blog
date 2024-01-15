@@ -1,15 +1,15 @@
 ---
 export const prerender = true;
 
-import { PostListItem } from "../components/PostListItem.tsx";
 import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PostIntroList from "../components/PostIntroList.astro";
 
 const blogEntries = await getCollection("blog");
 ---
 
 <BaseLayout title="Home page">
   <main class="mx-2 md:mx-4 my-12 flex flex-col gap-16">
-    {blogEntries.map((blogEntry) => <PostListItem {blogEntry} />)}
+    <PostIntroList {blogEntries} />
   </main>
 </BaseLayout>
