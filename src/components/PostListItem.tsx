@@ -1,15 +1,13 @@
-import type { MDXInstance } from "astro";
-import React from "react";
-import { PostTag } from "./PostTag";
+import type { CollectionEntry } from "astro:content";
 import { TagList } from "./TagList.tsx";
 
 interface Props {
-  post: MDXInstance<Record<string, any>>;
+  blogEntry: CollectionEntry<"blog">;
 }
 
-export function PostListItem({ post }: Props) {
-  const { title, description, thumbnail, tags } = post.frontmatter;
-  const link = post.url;
+export function PostListItem({ blogEntry }: Props) {
+  const { title, description, thumbnail, tags } = blogEntry.data;
+  const link = blogEntry.slug;
 
   return (
     <article className="grid gap-4 grid-cols-1 lg:grid-cols-[320px_auto]">

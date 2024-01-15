@@ -1,0 +1,42 @@
+---
+import { getCollection } from "astro:content";
+import { PostIntro } from "@components/PostIntro";
+import Donation from "@components/Donation.astro";
+import { GitHubLink } from "@components/GitHubLink";
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection("blog");
+
+  return blogEntries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const { description, tags, thumbnail, title, repository } = Astro.props.entry.data;
+---
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta charset="UTF-8" />
+    <title>{title}</title>
+  </head>
+  <body class="container mx-auto">
+    <main class="mx-2 md:mx-4">
+      <PostIntro title={title} description={description} tags={tags} thumbnail={thumbnail} />
+
+      {!!repository && <GitHubLink repository={repository} />}
+
+      <article class="prose lg:prose-xl max-w-none">
+        <Content />
+      </article>
+
+      <Donation />
+    </main>
+  </body>
+</html>

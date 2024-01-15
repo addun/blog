@@ -3,6 +3,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "typeRoots": ["./astro/types.d.ts"],
     "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],

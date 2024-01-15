@@ -1,0 +1,31 @@
+---
+title: Lifecycle hooks as observable
+description: |
+  One of trait of lifecycle in components and directives is that, you can not observe it.
+  If you must do something within one of this lifecycle, you have to declare variable first and then assign value in hook.
+  This can cause some problems, but there is a very simple solution.
+  Check how you can omit this in a very easy way.
+tags: ["Angular"]
+thumbnail: https://codegen.studio/wp-content/uploads/2022/08/angular-320x180.png
+repository:
+---
+
+```ts
+@Component({
+  /*...*/
+})
+export class TabsComponent implements AfterContentInit {
+  @ContentChildren(TabComponent) tabsSelector: QueryList<TabComponent>;
+
+  private contentInit$ = new ReplaySubject<void>(1);
+  tabs$ = this.contentInit$.pipe(
+    map(() => this.tabsSelector.toArray()),
+    switchMap((tabs) => this.tabsSelector.changes.pipe(startWith(tabs))),
+  );
+
+  ngAfterContentInit() {
+    this.contentInit$.next();
+    this.contentInit$.complete();
+  }
+}
+```

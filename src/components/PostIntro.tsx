@@ -2,17 +2,13 @@ import React from "react";
 import { PostTag } from "./PostTag";
 
 interface Props {
-  frontmatter: {
-    title: string;
-    description: string;
-    tags: string[];
-    thumbnail: string;
-  };
+  title: string;
+  description: string;
+  tags: string[];
+  thumbnail: string;
 }
 
-export function PostIntro({ frontmatter }: Props) {
-  const { title, description, tags, thumbnail } = frontmatter;
-
+export function PostIntro({ title, description, tags, thumbnail }: Props) {
   return (
     <header className="flex my-6 flex-col gap-12">
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-[3fr_2fr] ">
