@@ -1,0 +1,32 @@
+---
+slug: how-to-correctly-disable-submit-button-in-reactive-forms-in-angular
+id: 1157
+title: How to correctly disable submit button in reactive forms in Angular
+description: |
+  In this article, you can learn why you should always disable buttons with !form.valid.
+tags: [angular, angular-forms]
+thumbnail: https://codegen.studio/wp-content/uploads/2022/08/forms-320x180.png
+repository: invalid-form
+---
+
+import { Demo } from "@components/Demo";
+
+## Introduction
+
+Each form has one of three validation statuses:
+
+- `pending`: async validations are occurring and errors (or not) are not yet available for the input value.
+- `invalid`: an error exists in the input value.
+- `valid`: no errors exist in the input value.
+
+Writing `[disable]=form.invalid`, the application will not disable the button when the form is in `pending` status.
+
+## Solution
+
+Disable the button with !form.valid pattern.
+
+```html
+<button [disabled]="!form.valid">Submit</button>
+```
+
+<Demo height={350} repository="invalid-form" />
