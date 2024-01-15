@@ -26,13 +26,13 @@ const { description, tags, thumbnail, title, repository } = Astro.props.entry.da
     <meta charset="UTF-8" />
     <title>{title}</title>
   </head>
-  <body class="container mx-auto">
+  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
     <main class="mx-2 md:mx-4">
       <PostIntro title={title} description={description} tags={tags} thumbnail={thumbnail} />
 
       {!!repository && <GitHubLink repository={repository} />}
 
-      <article class="prose lg:prose-xl max-w-none">
+      <article class="prose dark:prose-invert lg:prose-xl max-w-none">
         <Content />
       </article>
 

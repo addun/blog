@@ -13,7 +13,7 @@ const blogEntries = await getCollection("blog");
     <meta charset="UTF-8" />
     <title>Astro</title>
   </head>
-  <body class="container mx-auto">
+  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
     <main class="mx-2 md:mx-4 my-12 flex flex-col gap-16">
       {blogEntries.map((blogEntry) => <PostListItem {blogEntry} />)}
     </main>

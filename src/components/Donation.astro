@@ -1,5 +1,9 @@
-<section class="p-4 border-solid border-l-8 my-16 border-l-sky-300 bg-sky-100 rounded">
-  <h2 class="text-3xl">Do you like the content?</h2>
+---
+import { Note } from "./Note";
+---
+
+<Note as="section" type="HELPFUL">
+  <h2 class="text-3xl pt-4">Do you like the content?</h2>
   <p class="my-4">Your support helps me continue my work. Please consider making a donation.</p>
 
   <div class="flex gap-4 flex-col sm:flex-row">
@@ -20,8 +24,8 @@
     </a>
   </div>
 
-  <p class="text-sm mt-2">
+  <p class="pb-2 mt-2 text-xs text-slate-700 dark:text-slate-300">
     Donations are accepted through PayPal or Stripe. You do not need a account to donate. All major credit cards are
     accepted.
   </p>
-</section>
+</Note>
