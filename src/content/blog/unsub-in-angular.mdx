@@ -1,0 +1,180 @@
+---
+id: W3VP0W
+oldId: 1297
+title: How to unsubscribe RxJs Observable in Angular
+description: |
+  Each time you call subscribe method on RxJs Observable, you should (most of the time) also call unsubscribe.
+  See how you can do it in Angular components.
+tags:
+  - angular
+  - angular-15
+thumbnail: https://codegen.studio/wp-content/uploads/2022/08/angular-320x180.png
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Unsubscribe on ngOnDestroy hook
+
+Advantages:
+
+- simplicity,
+- can unsubscribe individually.
+
+Disadvantages:
+
+- boilerplate code,
+- a potential problem with the initial value (not null safety),
+- need to manually unsubscribe.
+
+```ts
+@Component({})
+export class MyComponent implements OnInit, OnDestroy {
+  private sub1!: Subscription;
+  private sub2!: Subscription;
+
+  ngOnInit(): void {
+    this.sub1 = interval(1000).subscribe();
+    this.sub2 = interval(1000).subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.sub1.unsubscribe();
+    this.sub2.unsubscribe();
+  }
+}
+```
+
+## Unsubscribe on ngOnDestroy hook with subscriptions container
+
+Advantages:
+
+- simplicity,
+- null safety,
+- need to unsubscribe always only once.
+
+Disadvantages:
+
+- boilerplate code,
+- need to manually unsubscribe.
+
+```ts
+@Component({})
+export class MyComponent implements OnInit, OnDestroy {
+  private subs = new Subscription();
+
+  ngOnInit(): void {
+    const sub1 = interval(1000).subscribe();
+    const sub2 = interval(1000).subscribe();
+
+    this.subs.add(sub1);
+    this.subs.add(sub2);
+  }
+
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+  }
+}
+```
+
+## Unsubscribe with async pipe
+
+Advantages:
+
+- no need to implement OnInit and OnDestroy interfaces, async pipe does it automatically,
+- independent of change detection strategy if data from a stream are used within a template.
+
+Disadvantages:
+
+- less performance (async is not a pure pipe) with comparison to subscribe in component logic.
+
+```ts
+@Component({
+  template: `
+    <ng-container *ngIf="interval1$ | async"></ng-container>
+    <ng-container *ngIf="interval2$ | async"></ng-container>
+  `,
+})
+export class MyComponent {
+  interval1$ = interval(1000);
+  interval2$ = interval(1000);
+}
+```
+
+## Complete stream with takeUnitl operator
+
+Advantages:
+
+- simplicity,
+- null safety,
+- calling next on destroy$ causes complete on all streams.
+
+Disadvantages:
+
+- need to manually unsubscribe.
+
+```ts
+@Component({})
+export class MyComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
+    interval(1000).pipe(takeUntil(this.destroy$)).subscribe();
+    interval(1000).pipe(takeUntil(this.destroy$)).subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+
+## Unsubscribe/Complete with destroyable local service
+
+Thanks to destroyable local service you can move unsubscribe logic outside the component.
+
+Advantages:
+
+- automatically unsubscribe, no need to implement OnInit and OnDestroy interfaces,
+- unsubscribe logic is handled in one place,
+- the single-responsibility principle is preserved,
+- BONUS: you can handle unsubscribe and takeUntil pattern in one place
+
+Disadvantages:
+
+- the component has an additional provider.
+
+```ts
+@Injectable()
+export class Unsubscriber extends Subject<void> implements OnDestroy {
+  private subs = new Subscription();
+
+  set add(sub: Subscription) {
+    this.subs.add(sub);
+  }
+
+  ngOnDestroy(): void {
+    this.next();
+    this.complete();
+    this.subs.unsubscribe();
+  }
+}
+```
+
+```ts
+@Component({
+  providers: [Unsubscriber],
+})
+export class MyComponent implements OnInit {
+  constructor(private unsubscriber: Unsubscriber) {}
+
+  ngOnInit(): void {
+    // with takeUntil pattern
+    interval(1000).pipe(takeUntil(this.unsubscriber)).subscribe();
+
+    // with unsubscribe pattern
+    this.unsubscriber.add = interval(1000).subscribe();
+  }
+}
+```
