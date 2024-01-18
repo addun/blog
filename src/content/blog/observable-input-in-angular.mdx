@@ -4,13 +4,19 @@ id: euQjvG
 title: How to observe @Input in Angular with RxJs
 description: |
   Angular does not provide something like AsyncInput, 
-  but you can work around in a very easy way with set, 
-  ReplaySubject and @Input decorator.
+  but you can work around with ReplaySubject
 tags:
   - angular
+  - angular-17
 thumbnail: https://codegen.studio/wp-content/uploads/2022/08/angular-320x180.png
 repository:
 ---
+
+## Observable inputs
+
+In Angular, you can use RxJS to observe changes in an `@Input` property.
+To observe changes in this input property using RxJS,
+you can use push next value to `ReplaySubject` when a new value arrived.
 
 ```ts
 @Component({
@@ -21,13 +27,12 @@ export class ExampleComponent implements OnDestroy {
     this.userId$.next(userId);
   }
 
+  private userService = inject(UserService);
   private userId$ = new ReplaySubject<number>(1);
   userDetails$ = this.userId$.pipe(
     switchMap((userId) => this.userService.getUserDetails(userId)),
     shareReplay(1),
   );
-
-  constructor(private userService: UserService) {}
 
   ngOnDestroy() {
     this.userId$.complete();

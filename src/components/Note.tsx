@@ -1,16 +1,17 @@
 import React from "react";
+import { z } from "zod";
+
+const validator = z.enum(["HELPFUL", "IMPORTANT", "CRITICAL"]);
 
 interface Props {
-  type: "HELPFUL" | "IMPORTANT" | "CRITICAL";
+  type: z.infer<typeof validator>;
   children: React.ReactNode;
   className?: string;
   as?: React.ElementType;
 }
 
 export function Note({ children, type, className, as: Component = "div" }: Props) {
-  if (type === undefined) {
-    throw new Error("Note type has to be defined");
-  }
+  validator.parse(type);
 
   const extra = {
     CRITICAL: "border-l-red-300 dark:border-l-red-900 bg-red-100 dark:bg-red-950",
