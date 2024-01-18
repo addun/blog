@@ -8,6 +8,7 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@icons/*": ["src/components/icons/*"],
+      "@utils/*": ["src/utils/*"],
       "@demos/angular/*": ["src/demos/angular/*"]
     }
   }

@@ -5,13 +5,16 @@ import { getCollection } from "astro:content";
 import { PostIntro } from "@components/PostIntro";
 import Donation from "@components/Donation.astro";
 import { GitHubLink } from "@components/GitHubLink";
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");
 
   return blogEntries.map((entry) => ({
-    params: { article: entry.slug },
+    params: {
+      id: entry.data.id,
+      slug: entry.slug,
+    },
     props: { entry },
   }));
 }

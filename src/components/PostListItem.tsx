@@ -7,11 +7,11 @@ interface Props {
 }
 
 export function PostListItem({ blogEntry }: Props) {
-  const { title, description, thumbnail, tags } = blogEntry.data;
+  const { title, description, thumbnail, tags, id } = blogEntry.data;
   const link = getBlogPostPath(blogEntry);
 
   return (
-    <article className="grid gap-4 grid-cols-1 lg:grid-cols-[320px_auto]">
+    <article id={id} className="grid gap-4 grid-cols-1 lg:grid-cols-[320px_auto]">
       <a href={link}>
         <img src={thumbnail} alt="" className="w-full rounded-xl" />
       </a>
