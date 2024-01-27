@@ -1,7 +1,5 @@
 https://www.random.org/strings/?num=100&len=6&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new
 
-1IdY7A
-P86Vw7
 jPmuwe
 ayTUmQ
 M05omY

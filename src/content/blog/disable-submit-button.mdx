@@ -18,11 +18,11 @@ import { Demo } from "@components/Demo";
 
 Each form has one of three validation statuses:
 
-- `pending`: async validations are occurring and errors (or not) are not yet available for the input value.
-- `invalid`: an error exists in the input value.
-- `valid`: no errors exist in the input value.
+- `pending`: async validations are occurring and errors are not yet available for the input value
+- `invalid`: an error exists in the input value
+- `valid`: no errors exist in the input value
 
-Writing `[disable]=form.invalid`, the application will not disable the button when the form is in `pending` status.
+Writing `[disable]="form.invalid"`, the application will not disable the button when the form is in `pending` status.
 
 ## Solution
 

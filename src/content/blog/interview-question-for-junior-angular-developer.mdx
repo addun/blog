@@ -1,0 +1,280 @@
+---
+oldId: 1362
+id: 1IdY7A
+title: Interview questions for Junior Angular developer
+slug: interview-question-for-junior-angular-developer
+description: |
+  See the list of interview questions and answers for a junior
+  Angular developer position. The questions cover Angular basics topics.
+tags:
+  - angular
+thumbnail: "../images/angular.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Who is Junior Angular developer?
+
+A junior Angular developer is typically someone who is new to the field of web development
+and may have limited experience working with Angular.
+It may have recently graduated from a coding Bootcamp or have completed
+a self-study program in web development. As a result,
+they may have a basic understanding of Angular and the principles
+of web development but may need guidance and support in order to complete tasks and projects.
+
+Remember to be yourself and be honest during the interview.
+The interviewer wants to get to know you and see how you think,
+so try to relax and show off your personality and passion for programming.
+
+## What are modules in Angular?
+
+In Angular, a module is a container for a group of related components, directives,
+pipes, and services. It helps to organize the code and keep related
+things together, making it easier to maintain and reuse the code.
+
+An Angular module is defined by a class decorated with `@NgModule()`.
+The `@NgModule()` decorator is a function that takes a single metadata object,
+whose properties describe the module. The most important properties are as follows:
+
+- `declarations` the components, directives, and pipes that belong to this NgModule
+- `imports` other modules whose exported classes are needed by component templates declared in imported NgModule.
+- `exports` the subset of declarations that should be visible and usable in the component templates of other NgModules.
+
+## Can you give an example of a module that you have used?
+
+List of examples modules with descriptions:
+
+- `HttpClientModule` provides a way to make HTTP requests to a server.
+- `RouterModule` provides routing and navigation functionality to an application.
+- `CommonModule` provides a set of common directives and pipes that are frequently used in Angular templates like `ngIf`, `ngFor`, `async`, `date`.
+
+## What are directives in Angular?
+
+A class with a `@Directive` decorator that adds new behavior to
+an existing DOM element. Thanks to directives we can add/remove
+classes to elements, show/hide elements, etc.
+
+## What `*ngIf` is and what does? Give an example of usage.
+
+The ngIf is a directive that adds or removes an element from the DOM based on a boolean condition.
+As an example, `*ngIf` can be used to hide a button if a logged-in user does not have permission to perform an action.
+
+```html
+<section *ngIf="user !== null">
+  <!-- ... -->
+</section>
+```
+
+## What `*ngFor` is and what does? Give an example of usage.
+
+The `*ngFor` is a directive that renders a list of items based on an array and template.
+It is very similar to a for loop in javascript.
+As an example, ngFor can be used to display a list of items fetched from a server via HTTP.
+
+```html
+<ul>
+  <li *ngFor="let user of users">{{ user.name }}</li>
+</ul>
+```
+
+## Have you written your own directive? What did it do?
+
+There are no bad answers.
+Describe your experience with creating custom directives.
+If you have never created a directive, tell it.
+
+```ts
+import { Directive, ElementRef, OnInit, HostListener } from "@angular/core";
+import { Clipboard } from "@angular/cdk/clipboard";
+
+// Example directive in Angular to copy text on click
+@Directive({
+  selector: "[appCopyOnClick]",
+})
+export class CopyOnClickDirective {
+  constructor(
+    private elementRef: ElementRef<HTMLElement>,
+    private clipboard: Clipboard,
+  ) {}
+
+  @HostListener("click")
+  copyToClipboard() {
+    this.clipboard.copy(this.elementRef.nativeElement.innerText);
+  }
+}
+```
+
+## What are pipes in Angular?
+
+A class that implements PipeTransform which is preceded by the `@Pipe` decorator and which defines a function that transforms input values to output values for display in a view.
+To apply a pipe, use the pipe (`|`) character within a template expression.
+
+```ts
+import { Pipe, PipeTransform } from "@angular/core";
+
+// Example pipe in Angular to trim long text
+@Pipe({
+  name: "trim",
+})
+export class TrimPipe implements PipeTransform {
+  transform(value: string, maxLength = 255): string {
+    if (value.length < maxLength) {
+      return value;
+    }
+
+    return value.substring(0, maxLength - 3) + "...";
+  }
+}
+```
+
+## Give an example of build-in pipes
+
+List of example pipes in Angular:
+
+- `date` – display a formatted date value according to locale rules,
+- `json` – converts a value into its JSON-format representation, useful for debugging,
+- `async` – automatically unwrap value from Observable or Promise
+
+The listed pipes are just an example. You can describe your own list of pipes.
+To see more you can visit [Angular documentation about build-in pipes](https://angular.io/api/common#pipes).
+
+## Have you written your own pipe? What did it do?
+
+There is no bad answer.
+Describe your experience with creating custom pipes in Angular.
+If you have never created a pipe, tell it.
+An example pipe you can see above.
+
+## How to communicate components between themselves in parent-child relations?
+
+To communicate components use `@Input` and `@Output` decorators.
+`@Input` is used to pass data from a parent to a child. `@Output` is used to pass data up (from a child to a parent).
+
+Of course, there are more options to communicate components:
+
+- via service
+- via `@ViewChild`
+- via injecting a parent component into a child component
+
+But for a junior Angular developer answer with `@Input` and `@Output` is enough.
+
+## What lifecycle of components do you know and what do they do?
+
+- `onInit` – called only once after when inputs are set,
+- `afterContentInit` – called when ng-content was fully initialized,
+- `afterViewInit` – called when the component view (template) has been fully initialized,
+- `onDestroy` – called when the component is destroyed (useful to clean up all listeners).
+
+To read more you can open [Angular guide about lifecycle](https://angular.io/guide/lifecycle-hooks).
+I just listed the most important lifecycle events. It is enough to know for an Angular junior developer.
+
+## How to create a form in Angular?
+
+The are two ways to create a form in Angular:
+
+- Template-driven forms
+- Reactive forms
+
+### Template-driven forms
+
+To use this approach import `FormsModule`. To connect a variable to a template use `[(ngModel)]`.
+
+### Reactive forms
+
+To use this approach import `ReactiveFormsModule`.
+To create a form model use `FormGroup`, `FormArray` or `FormControl`.
+To connect the form model with a template use `formGroup` and `formControlName`.
+
+<Note type="HELPFUL">
+
+Junior Angular developers do not have to have knowledge about the differences between these two approaches and when is better to use any of them.
+
+</Note>
+
+## You have got a task to create a login form. How you would do it?
+
+### Requirements
+
+- the login form should contain email and password fields
+- to submit the form you should check if the email is valid address email and if the password has at least 8 chars
+
+### Implementation
+
+```ts
+import { ReactiveFormsModule } from "@angular/forms";
+
+@NgModule({
+  imports: [ReactiveFormsModule],
+  declarations: [LoginComponent],
+})
+export class AppModule {}
+```
+
+```ts
+@Component({
+  template: `
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <label for="email">Email</label>
+      <input type="email" id="email" formControlName="email" />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" formControlName="password" />
+
+      <button type="submit">Log in</button>
+    </form>
+  `,
+})
+class LoginComponent {
+  loginForm = new FormGroup({
+    email: new FormControl("", [Validators.required, Validators.email]),
+    password: new FormControl("", [Validators.required, Validators.minLength(8)]),
+  });
+
+  onSubmit() {
+    if (this.loginForm.valid) {
+      // perform the login request
+    } else {
+      // display an error message or highlight the invalid form controls
+    }
+  }
+}
+```
+
+<Note type="IMPORTANT">
+
+You can do the same functionality using _Template-driven_ forms approach but is a little more complex to meet assumed requirements.
+
+</Note>
+
+## What is RxJs?
+
+RxJS is a library for reactive programming using `Observable` objects that make it easier to work with asynchronous data,
+such as data coming from a backend service or user input events, using a declarative programming style.
+
+## Can you give an example where RxJs has been used in Angular?
+
+- `HttpClient` – send HTTP requests to a server
+- `Router.event` – an event stream for routing events.
+- `AbstractControl.valueChanges` – observable that emits an event every time the value of the control changes
+- `AbstractControl.statusChanges` – observable that emits an event every time the validation status of the control recalculates
+
+## What does the unsubscribe method?
+
+Unsubscribe refers to the act of canceling a subscription to an observable.
+To cancel the subscription, you should call the unsubscribe method on the
+subscription object returned by the subscribe method.
+This will stop the subscriber function from being executed and release any resources associated with the subscription.
+It’s important to unsubscribe from observables when you are done with them to avoid memory leaks and other issues.
+
+```ts
+import { interval } from "rxjs";
+
+// An example of using the unsubscribe method
+const interval$ = interval(1000);
+const subscription = interval$.subscribe((val) => console.log(val));
+
+// Later, when you want to cancel the subscription:
+subscription.unsubscribe();
+```

@@ -1,0 +1,189 @@
+---
+oldId: 1407
+id: P86Vw7
+title: Interview question and answers for Regular Angular developer
+slug: interview-question-and-answers-for-regular-angular-developer
+description: |
+  See the list of interview questions and answers for a regular Angular developer position.
+  The questions cover a good understanding of the Angular framework
+tags:
+  - angular
+thumbnail: "../images/angular.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Who is a Regular Angular developer?
+
+A regular Angular developer is someone who has more experience working with Angular and has a deeper understanding of the framework and web development principles.
+Is able to work independently and is able to complete tasks and projects with minimal guidance.
+A regular Angular developer has the ability to troubleshoot and solve complex problems.
+
+## What is trackBy and how it works with `NgFor`?
+
+The `trackBy` function allows Angular to track the items in an array and only re-render the DOM elements that have changed.
+This can significantly improve the performance of `*ngFor` when working with large lists which often change.
+
+A custom `trackBy` function must have several properties:
+
+- be idempotent (be without side effects, and always return the same value for a given input)
+- return unique value for all unique inputs
+- be fast
+
+A common use for custom `trackBy` a function is when the model that `NgFor` iterates over containing a property with a unique identifier.
+For example:
+
+```ts
+import { Component } from "@angular/core";
+
+interface User {
+  id: number;
+  name: string;
+}
+
+@Component({
+  selector: "my-app",
+  template: `
+    <ul>
+      <li *ngFor="let item of items; trackBy: trackByFn">
+        {{ item.name }}
+      </li>
+    </ul>
+  `,
+})
+export class AppComponent {
+  items: User[] = [
+    /* ... */
+  ];
+
+  trackByFn(index: number, item: User): number {
+    return item.id; // assume each item has a unique 'id' property
+  }
+}
+```
+
+## What is `forRoot` and `forChild` import?
+
+If a module defines both providers and declarations (components, directives, pipes),
+then loading the module in multiple feature modules would duplicate the registration of the service.
+This could result in multiple service instances and the service would no longer behave as a singleton.
+
+In the Angular framework, the `forRoot()` and `forChild()` are conventional names
+for methods which are used when configuring the providers of a module:
+
+- `forRoot()` is typically used when the module provides a singleton service that will be shared across the entire application, or when the module has dependencies that should be provided to the root injector.
+- `forChild()` is typically used when the module provides a service that will be used by a subset of the application, or when the module has dependencies that should be provided to the child injector of the importing module.
+
+```ts
+// A example module with forRoot and forChild static methods
+
+@NgModule({
+  // ...
+})
+export class SomeModule {
+  static forRoot(): ModuleWithProviders {
+    return {
+      ngModule: SomeModule,
+      providers: [SomeService],
+    };
+  }
+
+  static forChild(): ModuleWithProviders {
+    return {
+      ngModule: SomeModule,
+      providers: [],
+    };
+  }
+}
+```
+
+## How change detector works in Angular?
+
+In Angular, the change detection system is responsible for detecting changes in the component tree and updating the view to reflect those changes.
+It does this by running a process called change detection that compares the current component tree to a previous snapshot of the tree and identifies any changes that have occurred.
+
+The change detection process begins when an event triggers an update to the component tree:
+
+- if event occur inside component (click button, keypress inside component) then Angular runs the change detection process, starting at this component and working its way up to the root component.
+  After than it goes down from the root component to the other components in the tree.
+- if event occur globally (HTTP request), the change detection process starting at the root component and working its way down the component tree.
+
+If a change is detected, Angular updates the component’s view to reflect the change.
+If no changes are detected, Angular skips the component and moves on to the next component in the tree.
+
+## What is a change detection strategy?
+
+In Angular, a change detection strategy determines when the framework should check for changes in the component data and update the view accordingly.
+There are two main change detection strategies available in Angular.
+
+### Default change detection strategy
+
+This is the default strategy used in Angular.
+Angular runs a tick, during which the change detector compares each value of a component property with its previous value.
+If the value has changed, Angular updates the view to reflect the change.
+
+### OnPush change detection strategy
+
+This is an optimization of the default change detection strategy.
+With OnPush change detection, Angular only runs change detection when a component’s input properties change or an event is emitted by the component.
+This can improve the performance of your application, especially if you have a large number of components or if your components have complex relationships with each other.
+The main trade-off is that you have to manually run a change detector if a change is not emitted by the component.
+
+To use `OnPush` change detection, you need to set the `changeDetection` property of the component to `ChangeDetectionStrategy.OnPush`.
+
+```ts
+import { ChangeDetectionStrategy, Component, ChangeDetectorRef } from "@angular/core";
+import { timer } from "rxjs";
+
+// Component with OnPush change detection strategy
+@Component({
+  selector: "app-my-component",
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class MyComponent {
+  constructor(private changeDetector: ChangeDetectorRef) {}
+
+  ngOnInit() {
+    // because event is not caused by component event
+    // you have to manually run change detection
+    timer(5000).subscribe(() => this.changeDetector.markForCheck());
+  }
+}
+```
+
+## What is NgZone?
+
+Angular uses zones to run its change detection processes.
+A zone is a sort of execution context that allows Angular to track the asynchronous
+tasks that are happening in an application and trigger a change detection cycle when needed.
+
+The NgZone service provides methods for running code inside or outside of the Angular zone.
+This can be useful for optimizing the performance of your application,
+as change detection cycles can be expensive to run.
+
+For example, you might use the NgZone service to run code that is
+not related to the component data outside of the Angular zone.
+This way, Angular will not trigger a change detection cycle when that code
+is executed, improving the performance of your application.
+
+```ts
+import { Component, NgZone, OnInit } from "@angular/core";
+import * as Plotly from "plotly";
+
+@Component({
+  selector: "app-my-component",
+})
+class AppComponent implements OnInit {
+  constructor(private ngZone: NgZone) {}
+
+  ngOnInit() {
+    // build plotly outside angular zone
+    // to not run change detection inside library
+    this.ngZone.runOutsideAngular(() => {
+      Plotly.react("myDiv");
+    });
+  }
+}
+```
