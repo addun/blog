@@ -5,7 +5,9 @@ import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import PostIntroList from "../components/PostIntroList.astro";
 
-const blogEntries = await getCollection("blog");
+const notSorted = await getCollection("blog");
+
+const blogEntries = notSorted.toSorted((a, b) => (b.data.oldId > a.data.oldId ? 1 : -1));
 
 const dataEntries = blogEntries.map((entry) => ({
   id: entry.data.id,

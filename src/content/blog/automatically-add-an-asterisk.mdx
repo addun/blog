@@ -1,0 +1,90 @@
+---
+oldId: 5
+id: WDsJMn
+title: How to automatically add an asterisk (*) for required fields in the reactive form using Angular
+description: |
+  This article describes a method for automatically adding an asterisk (*)
+  to required fields in a reactive form using Angular.
+  It uses the built-in validators in Angular to determine if a field is required
+  and then uses a component to add the asterisk
+  to the label of the corresponding form field.
+tags:
+  - angular
+  - angular-forms
+thumbnail: "../images/angular-forms.png"
+repository: label-with-asterisk
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Demo
+
+<Demo height={330} repository="label-with-asterisk" />
+
+<Note type="HELPFUL">
+
+Take note that clicking into buttons causes adding or removing \*.
+
+</Note>
+
+## How to check if control is required?
+
+Since Angular 13 is the available method to check if a control has a `Validators.required` validator.
+To do it use a `hasValidator` method.
+
+```ts
+import { FormControl, Validators } from "@angular/forms";
+
+const title = new FormControl(null, [Validators.required]);
+const isTitleRequired = title.hasValidator(Validators.required);
+
+console.log(isTitleRequired); // -> true
+```
+
+Having this information you can dynamically add an asterisk (or not) in the template.
+
+```html
+<label for="title"> Title {{ isTitleRequired ? "*" : ""}} </label>
+```
+
+## Creating a custom wrapper for label
+
+The next step is to create a component with `formControl` input and wrap label with custom logic.
+
+```ts
+import { Component, Input } from "@angular/core";
+import { AbstractControl, Validators } from "@angular/forms";
+
+@Component({
+  selector: "app-label",
+  template: `<label>
+    <ng-container *ngIf="required">*</ng-container>
+    {{ required ? "*" : "" }}
+  </label>`,
+  styles: [
+    `
+      :host {
+        display: contents;
+      }
+    `,
+  ],
+})
+export class AppLabelComponent {
+  @Input() for?: string;
+  @Input() formControl!: AbstractControl;
+
+  get required(): boolean {
+    return this.formControl.hasValidator(Validators.required);
+  }
+}
+```
+
+Last but not least is to use `app-label` instead of `label`.
+
+```html
+<div>
+  <app-label for="title" [formControl]="title">Title</app-label>
+  <input id="title" [formControl]="title" />
+</div>
+```
