@@ -1,0 +1,26 @@
+---
+import { PostTag } from "./PostTag";
+import { Image } from "astro:assets";
+
+interface Props {
+  title: string;
+  description: string;
+  tags: string[];
+  thumbnail: ImageMetadata;
+}
+
+const { title, description, tags, thumbnail } = Astro.props;
+---
+
+<header class="flex mt-6 mb-12 flex-col gap-12">
+  <div class="grid gap-4 grid-cols-1 lg:grid-cols-[3fr_2fr]">
+    <div class="order-2 lg:order-none">
+      <h1 class="text-4xl m-0 font-bold">{title}</h1>
+      <p class="text-justify my-4">{description}</p>
+      <div class="flex gap-4 flex-wrap">
+        {tags.map((tag) => <PostTag tag={tag} />)}
+      </div>
+    </div>
+    <Image src={thumbnail} class="w-full rounded-xl order-1 lg:order-none" alt="" />
+  </div>
+</header>

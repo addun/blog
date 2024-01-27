@@ -9,7 +9,7 @@ tags:
   - angular-cdk
   - angular
   - angular-16
-thumbnail: https://codegen.studio/wp-content/uploads/2022/08/cdk-320x180.png
+thumbnail: "../images/angular-cdk.png"
 repository: tooltip
 ---
 
@@ -231,27 +231,34 @@ Info about the current position of the tooltip I took from CSS classes like top 
 ### How to implement a fallback position strategy
 
 ```ts
+@Directive({
+  selector: "[appTooltip]",
+})
+export class TooltipDirective implements OnDestroy {
+  // ...
+
   private getPositionStrategy(): PositionStrategy {
     return this.overlay
       .position()
       .flexibleConnectedTo(this.element)
       .withPositions([
         {
-          originX: 'center',
-          originY: 'top',
-          overlayX: 'center',
-          overlayY: 'bottom',
-          panelClass: 'top',
+          originX: "center",
+          originY: "top",
+          overlayX: "center",
+          overlayY: "bottom",
+          panelClass: "top",
         },
         {
-          originX: 'center',
-          originY: 'bottom',
-          overlayX: 'center',
-          overlayY: 'top',
-          panelClass: 'bottom',
+          originX: "center",
+          originY: "bottom",
+          overlayX: "center",
+          overlayY: "top",
+          panelClass: "bottom",
         },
       ]);
   }
+}
 ```
 
 As you can see, we have two positions (array with two elements).
