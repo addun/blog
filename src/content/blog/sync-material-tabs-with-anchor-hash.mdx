@@ -1,0 +1,103 @@
+---
+id: H2BSP7
+oldId: 2197
+slug: sync-material-tabs-with-anchor-hash
+title: Sync material tabs with anchor/hash
+description: |
+  By default `MatTabsGroup` opens the first available tab.
+  We can change it via input, but a more elegant way is
+  to create a logic to save the selected tab into a URL (thanks to the anchor)
+  and allow users to send a URL with the already selected tab.
+tags:
+  - angular-material
+  - angular
+  - angular-17
+thumbnail: "../images/angular-material.png"
+repository: material-tab-with-anchor
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Demo
+
+<Demo height={350} repository={frontmatter.repository} />
+
+<Note type="IMPORTANT">
+
+To see how the anchor is changing during navigation through tabs open the demo in a new window.
+
+</Note>
+
+## Writing logic to sync a tab with an anchor
+
+We can move all logic related to synchronizing the opened tab with hash to directive.
+Thanks of that our solution will be very easy to use in other places.
+
+```ts
+@Directive({
+  standalone: true,
+  selector: "[appSyncTabsWithAnchor]",
+})
+export class SyncTabsWithAnchor implements AfterContentInit {
+  private group = inject(MatTabGroup, { self: true });
+  private router = inject(Router);
+
+  private activatedRoute = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+
+  ngAfterContentInit() {
+    const fragment = this.activatedRoute.snapshot.fragment;
+
+    if (fragment) {
+      const indexByLabel = this.group._tabs.toArray().findIndex((tab) => tab.textLabel === fragment);
+
+      if (indexByLabel !== -1) {
+        this.group.selectedIndex = indexByLabel;
+      } else {
+        this.group.selectedIndex = +fragment.replace("tab-", "") || 0;
+      }
+    }
+
+    const tabChangeSub = this.group.selectedTabChange.subscribe((event) =>
+      this.router.navigate([], {
+        relativeTo: this.activatedRoute,
+        fragment: event.tab.textLabel || "tab-" + event.index.toString(),
+        replaceUrl: true,
+      }),
+    );
+    this.destroyRef.onDestroy(() => tabChangeSub.unsubscribe());
+  }
+}
+```
+
+<Note type="HELPFUL">
+
+Take a look at how the directive works. First, the directive checks if a tab has `label`.
+If not the directive will create a fake ID with the pattern `tab-{index}`.
+
+</Note>
+
+## How to use
+
+To use the directive just add the selector to a component.
+
+```html
+<mat-tab-group appSyncTabsWithAnchor>
+  <mat-tab label="First"> Content 1 </mat-tab>
+  <mat-tab label="Second"> Content 2 </mat-tab>
+  <mat-tab label="Third"> Content 3 </mat-tab>
+</mat-tab-group>
+```
+
+<Note type="IMPORTANT">
+
+Do not forget to import the directive to your component/module.
+
+</Note>
+
+<Note type="CRITICAL">
+
+You cannot have more than one `mat-tab-group` on the page. To get a deal with it you should rewrite logic to save the opened tab in another place (for example in query params).
+
+</Note>

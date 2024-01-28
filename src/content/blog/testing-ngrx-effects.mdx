@@ -1,0 +1,184 @@
+---
+id: r1clNO
+oldId: 2115
+slug: testing-ngrx-effects-with-promises-marbles-alternative
+title: Testing NgRx effects with promises – marbles alternative
+description: |
+  You can test effects using marbles but unfortunately, they are very complicated.
+  Instead of marbles, you can test your effects using promises without any trade-offs.
+tags:
+  - angular
+  - angular-17
+  - jasmine
+  - karma
+  - rxjs
+  - ngrx
+thumbnail: "../images/rxjs.png"
+repository: ngrx-testing
+---
+
+import { Note } from "@components/Note";
+
+## Writing an example effect to test
+
+Imagine you have written an effect to load tasks but only when they are not loaded yet.
+
+```ts
+const loadTasks = createEffect(
+  () => {
+    const actions$ = inject(Actions);
+    const toDoApi = inject(TaskApi);
+    const store = inject(Store);
+
+    return actions$.pipe(
+      ofType(ToDoActions.loadTasks),
+      switchMap(() => store.select(selectTaskState).pipe(take(1))),
+      switchMap((state) =>
+        state.status === "LOADED"
+          ? EMPTY
+          : toDoApi.getTasks().pipe(
+              map((toDos) => ToDoActions.tasksLoaded({ tasks: toDos })),
+              catchError(() => EMPTY),
+            ),
+      ),
+    );
+  },
+  { functional: true },
+);
+
+export const TasksEffects = { loadTasks };
+```
+
+## Testing scenarios
+
+Let’s now write testing scenarios. There should be three tests:
+
+- should call `getTasks` method when the state is not `LOADED`
+- should not call `getTasks` method when the state is `LOADED`
+- should call `getTasks` only once even when `ToDoActions.loadTasks` is called twice
+
+## Writing a helper function for test cases
+
+Each scenario will have the same configuration logic so I have created a function to not repeat it each time.
+
+```ts
+function createContext() {
+  const actions$ = new Subject();
+  const mockTaskApi = jasmine.createSpyObj<TaskApi>(TaskApi.name, ["getTasks"]);
+
+  mockTaskApi.getTasks.and.returnValue(timer(100).pipe(map(() => [])));
+
+  const injector = Injector.create({
+    providers: [
+      provideMockStore({ initialState: { task: initialState } }),
+      provideMockActions(() => actions$),
+      { provide: TaskApi, useValue: mockTaskApi },
+    ],
+  });
+
+  return {
+    injector,
+    actions$,
+    mockToDoApi: mockTaskApi,
+    mockStore: injector.get<MockStore<{ task: TaskState }>>(MockStore),
+  };
+}
+```
+
+<Note type="HELPFUL">
+
+You can do the same with `beforeEach` function available in [Jasmine](https://jasmine.github.io/api/3.5/global.html#beforeEach).
+
+</Note>
+
+## Writing the test to check if `getTasks` has been called
+
+To check if the method `getTasks` is called we have to do three things
+
+1. listen for the result of the effect by using `firstValueFrom`
+1. emit action to load tasks
+1. check what effect has returned
+
+```ts
+it('should call "getTasks" action when the status is INITIAL', async () => {
+  const { actions$, injector, mockToDoApi, mockStore } = createContext();
+
+  mockStore.setState({ task: { status: "INITIAL" } });
+
+  await runInInjectionContext(injector, async () => {
+    const effect = TasksEffects.loadTasks();
+
+    const resultPromise = firstValueFrom(effect);
+    actions$.next(ToDoActions.loadTasks);
+
+    expect(await resultPromise).toEqual(ToDoActions.tasksLoaded({ tasks: [] }));
+    expect(mockToDoApi.getTasks).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+## Writing the test to check if `getTasks` has not been called
+
+The test will be similar to the previous one, but the difference is the initial state. Here the initial state will be with the status `LOADED`.
+
+```ts
+it('should not call "loadItems" action when the status is LOADED', async () => {
+  const { actions$, injector, mockToDoApi, mockStore } = createContext();
+
+  mockStore.setState({ task: { status: "LOADED", tasks: [] } });
+
+  await runInInjectionContext(injector, async () => {
+    const effect = TasksEffects.loadTasks();
+
+    const resultPromise = firstValueFrom(effect, { defaultValue: "END" });
+    actions$.next(ToDoActions.loadTasks);
+    actions$.complete();
+
+    expect(await resultPromise).toEqual("END");
+    expect(mockToDoApi.getTasks).toHaveBeenCalledTimes(0);
+  });
+});
+```
+
+<Note type="IMPORTANT">
+
+`defaultValue` will be returned when the subscription (the effect in this case) is completed without emitting any value. That’s so that we can `await` our promise. Without it, the promise will be rejected.
+
+</Note>
+
+## Writing the test to check if `getTasks` will not be called twice
+
+In this test, we want to check the case when a user calls the action twice.
+We want to handle that case by ignoring the next action.
+The test should check if the method `getTasks` has been called only once even when the action was called twice.
+
+```ts
+it('should call "getTasks" only once ', async () => {
+  const { actions$, injector, mockToDoApi, mockStore } = createContext();
+
+  mockStore.setState({ task: { status: "INITIAL" } });
+
+  await runInInjectionContext(injector, async () => {
+    const effect = TasksEffects.loadTasks();
+
+    const resultPromise = firstValueFrom(effect);
+    actions$.next(ToDoActions.loadTasks);
+    actions$.next(ToDoActions.loadTasks);
+
+    expect(await resultPromise).toEqual(ToDoActions.tasksLoaded({ tasks: [] }));
+    expect(mockToDoApi.getTasks).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+<Note type="IMPORTANT">
+
+This test will fail because the effect does not have protection for this case.
+To handle this case we should replace `switchMap` with `exhaustMap` in effect implementation.
+
+```ts
+// switchMap((state) => state.status === 'LOADED' /** ... */)
+exhaustMap((state) => state.status === "LOADED" /** ... */);
+```
+
+</Note>
