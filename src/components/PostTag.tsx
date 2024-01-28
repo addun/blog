@@ -6,7 +6,7 @@ interface Props {
 
 export function PostTag({ tag }: Props) {
   return (
-    <a href={"/tags/" + tag} className="flex gap-1 flex-nowrap items-center text-orange-400">
+    <a href={"/tags/" + tag} className="flex gap-2 flex-nowrap items-center text-orange-400">
       <TagIcon />
       <span>{tag}</span>
     </a>

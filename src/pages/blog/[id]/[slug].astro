@@ -20,7 +20,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { description, tags, thumbnail, title, repository } = Astro.props.entry.data;
+const { description, thumbnail, title, repository, date, modified } = Astro.props.entry.data;
 const { Content } = await entry.render();
 ---
 
@@ -30,23 +30,23 @@ const { Content } = await entry.render();
 
     <meta name="title" content={title} />
     <meta property="og:title" content={title} />
+
     <meta name="description" content={description} />
     <meta name="og:description" content={description} />
-    <meta property="og:type" content="article" />
+
     <meta property="og:url" content={Astro.url} />
-
-    <!-- @todo: add dates to article -->
-    <!-- <meta property="article:published_time" content="2024-01-07T15:02:15+01:00"> -->
-    <!-- <meta property="article:modified_time" content="2024-01-07T21:11:22+01:00"> -->
-
     <meta property="og:image" content={thumbnail.src} />
     <meta property="og:image:width" content={thumbnail.width.toString()} />
     <meta property="og:image:height" content={thumbnail.height.toString()} />
     <meta property="og:image:type" content={thumbnail.format} />
+
+    <meta property="og:type" content="article" />
+    <meta property="article:published_time" content={date.toISOString()} />
+    <meta property="article:modified_time" content={modified.toISOString()} />
   </Fragment>
 
   <main class="mx-2 md:mx-4">
-    <PostIntro title={title} description={description} tags={tags.map((tag) => tag.slug)} thumbnail={thumbnail} />
+    <PostIntro {entry} />
 
     {!!repository && <GitHubLink repository={repository} />}
 
