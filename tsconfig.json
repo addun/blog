@@ -9,6 +9,7 @@
       "@components/*": ["src/components/*"],
       "@icons/*": ["src/components/icons/*"],
       "@utils/*": ["src/utils/*"],
+      "@layouts/*": ["src/layouts/*"],
       "@demos/angular/*": ["src/demos/angular/*"]
     }
   }

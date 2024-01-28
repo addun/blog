@@ -5,8 +5,7 @@ import { getCollection } from "astro:content";
 import PostIntro from "@components/PostIntro.astro";
 import Donation from "@components/Donation.astro";
 import { GitHubLink } from "@components/GitHubLink";
-import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { getBlogPostPath } from "../../../utils/blog-id";
+import BaseLayout from "@layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");

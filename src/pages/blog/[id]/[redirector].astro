@@ -1,0 +1,16 @@
+---
+import { getCollection } from "astro:content";
+import { getBlogPostPath } from "@utils/blog-id";
+
+const { id } = Astro.params;
+const blogs = await getCollection("blog");
+const perhapsEntry = blogs.find((entry) => entry.data.id === id);
+
+if (perhapsEntry === undefined) {
+  return Astro.redirect("/", 301);
+}
+
+const path = getBlogPostPath(perhapsEntry);
+
+return Astro.redirect(path, 301);
+---
