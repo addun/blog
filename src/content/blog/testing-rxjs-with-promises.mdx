@@ -1,0 +1,108 @@
+---
+oldId: 2079
+id: 9Bmah0
+slug: testing-rxjs-code-with-promises-the-simplest-way
+title: Testing RxJS code with Promises – the simplest way
+description: |
+  When testing RxJS code, you typically want to verify that your
+  observables emit the expected values in response to certain actions or events.
+  See how you can cover those cases using async/await approach.
+tags:
+  - rxjs
+  - jasmine
+  - karma
+  - testing
+thumbnail: "../images/rxjs.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## An example store implementation with RxJS
+
+Imagine a situation where you have written a store to manage tasks in your application.
+
+```ts
+interface Task {
+  id: number;
+  description: string;
+  completed: boolean;
+}
+
+export class TaskStore {
+  private static lastId = 0;
+
+  private tasks$$ = new BehaviorSubject<Task[]>([]);
+  tasks$ = this.tasks$$.asObservable();
+  completedTasks$ = this.tasks$$.pipe(map((toDos) => toDos.filter((task) => task.completed)));
+
+  addTask(description: string): Task {
+    const task: Task = {
+      id: ++TaskStore.lastId,
+      completed: false,
+      description,
+    };
+
+    this.tasks$$.next([task, ...this.tasks$$.getValue()]);
+
+    return task;
+  }
+
+  completeTask(id: number): void {
+    const tasks = this.tasks$$.getValue();
+    const newTasks = tasks.map((task) => (task.id === id ? { ...task, completed: true } : task));
+
+    this.tasks$$.next(newTasks);
+  }
+}
+```
+
+## Writing tests for the store with subscribe
+
+Let us write a test where we will try to check if our class correctly stores added tasks.
+To do it we can check the current using subscribe method. It utilizes the `take(1)` operator to handle the asynchronous nature of observables,
+ensuring that the expectations are checked after the observable emits its first value (we do not want to check the next values).
+
+```ts
+it("should add two tasks", () => {
+  const store = new TaskStore();
+
+  store.tasks$.pipe(take(1)).subscribe((tasks) => {
+    expect(tasks.length).toEqual(0);
+  });
+
+  store.addTask("Buy some milk");
+  store.addTask("Buy two eggs");
+
+  store.tasks$.pipe(take(1)).subscribe((tasks) => {
+    expect(tasks.length).toEqual(2);
+  });
+});
+```
+
+## Writing tests for the store with promise
+
+Let me write the same test scenario but using promises.
+Thanks to that we can write asynchronous code in a cleaner style using `async`/`await` keywords.
+Thanks to this there are no callbacks and problems with asynchronous code.
+
+```ts
+it("should add two tasks", async () => {
+  const store = new TaskStore();
+
+  const initialState = await firstValueFrom(store.tasks$);
+  expect(initialState.length).toEqual(0);
+
+  store.addTask("Buy some milk");
+  store.addTask("Buy two eggs");
+
+  const nextState = await firstValueFrom(store.tasks$);
+  expect(nextState.length).toEqual(2);
+});
+```
+
+<Note type="HELPFUL">
+
+[firstValueFrom](https://rxjs.dev/api/index/function/firstValueFrom) function converts observable to promise by returning the first emitted value.
+
+</Note>

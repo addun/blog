@@ -1,0 +1,64 @@
+---
+oldId: 1838
+id: BM8YBm
+slug: initialize-class-property-in-a-declaration-not-in-a-constructor
+title: Initialize class property in a declaration, not in a constructor
+
+description: |
+  There is no difference in JS when you split property into declaration
+  and initialization so you can choose the shortest
+  version: declare and initialize in the same line.
+tags:
+  - typescript
+thumbnail: "../images/typescript.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Split property into declaration and initialization
+
+TypeScript requires to declare class properties.
+That means you have to always define property and type.
+To initialize property you can use the constructor.
+
+```ts
+class ExampleClass2 {
+  name: string;
+
+  constructor() {
+    this.name = "John";
+  }
+}
+```
+
+## Declare and initialize in the same line
+
+When you know the initial value then TypeScript allows you to initialize a property in the same line.
+That means you do not have to even define the constructor.
+TypeScript will do it for you.
+
+```ts
+class ExampleClass1 {
+  name = "John";
+}
+```
+
+## JS code after compilation
+
+As you can see there is no difference between the two of them
+(you can see the preview on [TS Playground](https://www.typescriptlang.org/play?#code/MYGwhgzhAECiAeYC2AHEBTAwuKBGaA3gFDSnQB2y60AvNAOQBSA9gBbn0DcRAvkUaEgwEyNFhwQATIRJlKSdAC5oEAC4AnAJbkA5t1mlgzcmvUBXYKubqAFAEoZZJ9FWtNEAHTzqdJmw4G0Hw8QA))
+so you can choose what but personally I would choose the shortest (declare and initialize in the same line).
+
+```js
+class ExampleClass1 {
+  constructor() {
+    this.name = "John";
+  }
+}
+class ExampleClass2 {
+  constructor() {
+    this.name = "John";
+  }
+}
+```

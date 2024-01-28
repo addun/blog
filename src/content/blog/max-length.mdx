@@ -1,0 +1,133 @@
+---
+oldId: 1877
+id: ZXp9d6
+slug: how-to-display-max-length-based-on-formcontrols-validator
+title: How to display max length based on FormControl’s validator
+description: |
+  Unfortunately `hasValidator` does not work well with validators created dynamically
+  like `Validator.maxLength` but there is a solution 
+  that allows getting information about maxLength value anyway.
+tags:
+  - angular
+  - angular-16
+  - angular-forms
+  - reactive-forms
+thumbnail: "../images/angular.png"
+repository: min-max-validator
+---
+
+import { Demo } from "@components/Demo";
+import { Note } from "@components/Note";
+
+## Demo
+
+<Demo height={300} repository={frontmatter.repository} />
+
+<Note type='HELPFUL'>
+
+Take a look at the title hint. Try to provide a title longer than 15 chars.
+
+</Note>
+
+## Problem with `hasValidator`
+
+Let’s create a simple `FormControl` with `maxLength` validator.
+To check if the control has some validator we can use the `hasValidator` method
+but it does not work correctly for `Validators.maxLength(15)` because
+calling `Validators.maxLength(15)` creates another reference
+and the implementation of `hasValidator` check validators by reference.
+
+```ts
+import { FormControl, Validators } from "@angular/forms";
+
+const titleControl = new FormControl(null, [Validators.maxLength(15)]);
+titleControl.hasValidator(Validators.maxLength(15)); // -> false
+
+// ---
+
+const max15Chars = Validators.maxLength(15);
+const titleControl = new FormControl(null, [max15Chars]);
+titleControl.hasValidator(max15Chars); // -> true
+```
+
+## Checking if a control has a `maxLength` validator without `hasValidator`
+
+To check if the control has a `maxLength` validator let’s
+first take a look into [maxLength implementation](https://github.com/angular/angular/blob/16.2.0/packages/forms/src/validators.ts#L521-L527).
+
+```ts
+//  The fragment of maxLength validator
+export function maxLengthValidator(maxLength: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    return hasValidLength(control.value) && control.value.length > maxLength
+      ? { maxlength: { requiredLength: maxLength, actualLength: control.value.length } }
+      : null;
+  };
+}
+
+// ---
+
+function hasValidLength(value: any): boolean {
+  return value != null && typeof value.length === "number";
+}
+```
+
+<Note type='HELPFUL'>
+
+As you can see validator checks if a control’s value has _a valid length_ (if it is an object with a `length` property) and then compares this length with `maxLength` argument.
+
+</Note>
+
+We can use this knowledge to create a _fake_ object with a length property.
+We can get all control’s validators and check if we get the `maxLength` error for `{ length: Infinity }`.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+function hasMaxLengthValidator(control: AbstractControl): boolean {
+  const validator = control.validator;
+
+  if (validator === null) {
+    return false;
+  }
+
+  const errors = validator(new FormControl({ length: Infinity })) ?? {};
+  return "maxlength" in errors;
+}
+
+const titleControl = new FormControl(null, [Validators.maxLength(15)]);
+const hasMaxLengthValidator = hasMaxLengthValidator(titleControl);
+console.log(hasMaxLengthValidator); //-> true
+```
+
+<Note type='HELPFUL'>
+
+Because nothing can be bigger than `Infinity` we are sure that we cause an error if the validator contains `maxLength` validator.
+
+</Note>
+
+## Getting `maxLength` value from the validator
+
+To get information about the `maxLength` value from the validator first we need to cause an error.
+In the error details, we have information about the `maxLength` value and actual value of a control.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+function getMaxLengthFromValidator(control: AbstractControl, fallback: number): number;
+function getMaxLengthFromValidator(control: AbstractControl): number | undefined;
+function getMaxLengthFromValidator(control: AbstractControl, fallback?: number): number | undefined {
+  const validatorFn = control.validator;
+
+  if (validatorFn === null) {
+    return fallback;
+  }
+
+  const errors = validatorFn(new FormControl({ length: Infinity }));
+  return errors?.["maxlength"]["requiredLength"] ?? fallback;
+}
+
+const titleControl = new FormControl(null, [Validators.max(15)]);
+const maxLengthValue = getMaxLengthFromValidator(titleControl);
+console.log(maxLengthValue); //-> 15
+```
