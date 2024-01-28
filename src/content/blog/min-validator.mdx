@@ -1,0 +1,103 @@
+---
+oldId: 1560
+id: M05omY
+slug: how-to-check-if-a-form-control-has-a-min-validator
+title: How to check if a FormControl has a `min` validator
+description: |
+  Unfortunately `hasValidator` does not work well with validators created
+  dynamically like `Validator.min` but there is a solution that allows getting information about min value anyway.
+tags:
+  - angular
+  - angular-forms
+  - angular-16
+  - reactive-forms
+thumbnail: "../images/angular.png"
+repository: min-max-validator
+---
+
+import { Note } from "@components/Note";
+
+## Problem with `hasValidator`
+
+Let’s create a simple `FormControl` with `min` validator.
+To check if the control has some validator we can use the `hasValidator` method
+but it does not work correctly for `Validators.min(3)` because calling `Validators.min(3)`
+creates another reference and the implementation of `hasValidator` check validators by reference.
+
+```ts
+import { FormControl, Validators } from "@angular/forms";
+
+const passwordControl = new FormControl(null, [Validators.min(3)]);
+passwordControl.hasValidator(Validators.min(3)); // -> false
+
+const minThreeValidator = Validators.min(3);
+const confirmPassword = new FormControl(null, [minThreeValidator]);
+confirmPassword.hasValidator(minThreeValidator); // -> true
+```
+
+## Checking if a control has a `min` validator without `hasValidator`
+
+To check if the control has a `min` validator we can use knowledge about numbers.
+We can get all control’s validators and check if we get the `min` error for `-Infinity`.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+const minAgeControl = new FormControl(null, [Validators.required, Validators.min(18)]);
+const hasMinValidator = hasControlMinValidator(minAgeControl);
+console.log(hasMinValidator); //-> true
+
+function hasControlMinValidator(control: AbstractControl): boolean {
+  const validator = control.validator;
+
+  if (validator === null) {
+    return false;
+  }
+
+  const errors = validator(new FormControl(-Infinity)) ?? {};
+  return "min" in errors;
+}
+```
+
+<Note type="HELPFUL">
+
+Because nothing can be lesser than `-Infinity` we are sure that we cause an error if the validator contains `min` validator.
+
+</Note>
+
+## Getting `min` value from the validator
+
+To get information about the `min` value from the validator first we need to cause an error.
+In the error details, we have information about the `min` value and actual value of a control.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+const minAgeControl = new FormControl(null, [Validators.required, Validators.min(18)]);
+const minValue = getMinValue(minAgeControl);
+console.log(minValue); //-> 18
+
+function getMinValue(control: AbstractControl, fallback: number): number;
+function getMinValue(control: AbstractControl): number | undefined;
+function getMinValue(control: AbstractControl, fallback?: number): number | undefined {
+  const validator = control.validator;
+
+  if (validator === null) {
+    return fallback;
+  }
+
+  const errors = validator(new FormControl(-Infinity)) ?? {};
+  return "min" in errors ? errors["min"]["min"] : fallback;
+}
+```
+
+<Note type="HELPFUL">
+
+We have to write `errors['min']['min']` because first `min` is the error key and the second `min` is the value passed as the argument of `Validators.min` function.
+
+```ts
+const control = new FormControl(2, Validators.min(3));
+console.log(control.errors); // {min: {min: 3, actual: 2}}
+```
+
+</Note>

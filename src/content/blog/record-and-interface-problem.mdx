@@ -1,0 +1,128 @@
+---
+id: jPmuwe
+oldId: 1449
+slug: the-argument-of-type-is-not-assignable-to-the-parameter-of-type
+title: The argument of type <Interface> is not assignable to the parameter of type Record<string, string>
+description: |
+  This error message indicates that you are trying to pass an argument of type Interface 
+  to a function or method that expects a value of type Record<string, string>. See how to fix this.
+tags:
+  - typescript
+thumbnail: "../images/typescript.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Problem
+
+```ts
+interface Person {
+  name: string;
+  email: string;
+}
+
+function logRecord(record: Record<string, string>): void {
+  /* ... */
+}
+
+const me: Person = {
+  name: "John",
+  email: "john@doe.com",
+};
+
+logRecord(me); // error: "The argument of type 'Person' is not assignable to the parameter of type 'Record<string, string>'"
+const dictionary: Record<string, string> = me; // error: "The argument of type 'Person' is not assignable to the parameter of type 'Record<string, string>'"
+```
+
+## Solution #1: Use `type` instead of interface
+
+```ts
+type Person = {
+  name: string;
+  email: string;
+};
+
+function logRecord(record: Record<string, string>): void {
+  /* ... */
+}
+
+const me: Person = {
+  name: "John",
+  email: "john@doe.com",
+};
+
+logRecord(me); // works
+const dictionary: Record<string, string> = me; // works
+```
+
+## Solution #2: Create a shadow copy with decomposition
+
+```ts
+interface Person {
+  name: string;
+  email: string;
+}
+
+function logRecord(record: Record<string, string>): void {
+  /* ... */
+}
+
+const me: Person = {
+  name: "John",
+  email: "john@doe.com",
+};
+
+logRecord({ ...me }); // works
+const dictionary: Record<string, string> = { ...me }; // works
+```
+
+## Solution #3: Use `satisfies` to create variable
+
+```ts
+interface Person {
+  name: string;
+  email: string;
+}
+
+function logRecord(record: Record<string, string>): void {
+  /* ... */
+}
+
+const me = {
+  name: "John",
+  email: "john@doe.com",
+} satisfies Person;
+
+logRecord(me); // works
+const dictionary: Record<string, string> = me; // works
+```
+
+## Solution #4: Use `as` keyword
+
+```ts
+interface Person {
+  name: string;
+  email: string;
+}
+
+function logRecord(record: Record<string, string>): void {
+  /* ... */
+}
+
+const me: Person = {
+  name: "John",
+  email: "john@doe.com",
+};
+
+logRecord(me as unknown as Record<string, string>); // works
+const dictionary: Record<string, string> = me as unknown as Record<string, string>; // works
+```
+
+## What to choose?
+
+If you can, try to change interface into type.
+It is the best solution at this moment.
+Resolving the problem with a shadow copy has an impact on
+runtime execution code so is not recommended
+(if you do not need to create a shadow copy because of JavaScript, do not do it).
