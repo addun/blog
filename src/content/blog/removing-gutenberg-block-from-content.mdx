@@ -1,0 +1,51 @@
+---
+oldId: 982
+id: l99clX
+slug: removing-selected-gutenberg-block-from-post-content-in-wordpress
+title: Removing selected Gutenberg block from post content in WordPress
+description: |
+  There are cases where you want to hide a Gutenberg block from readers.
+  To do it you should add new filter for the_content.
+tags:
+  - wordpress
+  - php
+  - gutenberg
+thumbnail: "../images/wordpress.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Removing a custom block from content
+
+```php
+<?php
+add_filter('the_content', 'remove_to_do_from_content', 5);
+
+function remove_to_do_from_content($content){
+    if (has_block('custom/todo') === false) {
+        return $content;
+    }
+
+    $parsed = parse_blocks($content);
+    foreach ($parsed as $index => $block) {
+        if ($block['blockName'] === 'custom/todo') {
+            unset($parsed[$index]);
+        }
+    }
+
+    return serialize_blocks($parsed);
+}
+```
+
+<Note type="IMPORTANT">
+
+Take a look at the third argument. Our filter has to be run before the build-in converter (Gutenberg -> HTML) so we have to set a priority to `5`.
+
+</Note>
+
+<Note type="IMPORTANT">
+
+We do not have `break` after first found because we can have more than one todo block
+
+</Note>

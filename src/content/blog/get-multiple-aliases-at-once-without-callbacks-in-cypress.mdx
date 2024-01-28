@@ -1,0 +1,75 @@
+---
+oldId: 1614
+id: jD6bcV
+title: Get multiple aliases at once without callbacks in Cypress
+description: |
+  Aliases are a powerful feature in Cypress that allows you to
+  create references to elements on a web page and use them in subsequent commands.
+  However, it can be tedious to get multiple aliases one by one,
+  especially if you need to reference a large number of elements.
+  See how to write a command to get many aliases at once.
+tags:
+  - cypress
+thumbnail: "../images/cypress.png"
+repository:
+---
+
+## Problem
+
+Cypress does not provide a method to compare aliases or to get many aliases at once.
+Because of that to compare aliases you have to get each alias individually, creating a callback hell.
+
+```ts
+cy.get("#birthday").as("birthday");
+cy.get("#age").as("age");
+
+// ugly
+cy.get("@birthday").then((birthday) => {
+  cy.get("@age").then((age) => {
+    expect(birthday).to.eq(age);
+  });
+});
+```
+
+To get a deal with it we are going to create a new command called `getMany` which will take array with any kind of selectors (like aliases, elements etc).
+
+```ts
+cy.get("#birthday").as("birthday");
+cy.get("#age").as("age");
+
+cy.getMany(["@birthday", "@age"]).then(([birthday, age]) => {
+  expect(birthday).to.eq(age);
+});
+```
+
+## Adding custom command
+
+To resolve the described problem we can add a new command to Cypress’s commands called `getMany`.
+Thanks to this we can get as many aliases or elements as we want.
+To use this command copy-paste the implementation to `cypress/support/commands.ts`.
+
+```ts
+Cypress.Commands.add("getMany", (names: string[]): Cypress.Chainable<any[]> => {
+  const values: any[] = [];
+
+  for (const arg of names) {
+    cy.get(arg).then((value) => values.push(value));
+  }
+
+  return cy.wrap(values);
+});
+```
+
+## Adding type signature of the custom command
+
+To let `TypeScript`‘s compiler knows that we have added a custom command and have IntelliSense working,
+we have to describe the type signature of the custom command in the file `cypress/support/index.d.ts`.
+The type signatures should match the arguments custom commands expect. Here is how this file looks:
+
+```ts
+declare namespace Cypress {
+  interface Chainable<Subject = any> {
+    getMany(names: string[]): Chainable<any[]>;
+  }
+}
+```

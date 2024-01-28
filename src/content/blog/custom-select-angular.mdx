@@ -1,0 +1,312 @@
+---
+slug: create-a-custom-select-component-with-typeahead-built-on-angular-cdk-in-angular
+oldId: 1724
+id: KWAlx2
+title: Create a custom select component with typeahead built on @angular/cdk in Angular
+description: |
+  Native select element is used to create a drop-down list of options for users to choose from but does not support searching and typeahead.
+  Because of that, there are situations where developers are forced
+  to create their own select component.
+  See how you can implement custom select with searching with typehead.
+tags:
+  - angular
+  - angular-16
+  - angular-cdk
+  - angular-forms
+thumbnail: "../images/angular-cdk.png"
+repository: select
+---
+
+import { Demo } from "@components/Demo";
+import { Note } from "@components/Note";
+
+## Demo
+
+<Demo height={500} repository="select" />
+
+## Integration with forms
+
+`Select` implements `ControlValueAccessor` what means you can bind `formControlName` or `ngModel` directive.
+
+```ts
+import { ControlValueAccessor } from "@angular/forms";
+
+@Component({
+  selector: "app-select",
+  template: `
+    <form [formGroup]="form">
+      <app-select formControlName="githubProfile">
+        <!-- ... -->
+      </app-select>
+    </form>
+  `,
+  /* */
+})
+export class SelectComponent implements ControlValueAccessor {
+  /* */
+}
+```
+
+## Creating overlay
+
+To open an overlay is used `@angular/cdk/overlay` package.
+Thanks to this library all logic to create and position is hidden under nice classes and methods.
+
+```ts
+import { Overlay } from "@angular/cdk/overlay";
+
+@Component({
+  selector: "app-select",
+  /* */
+})
+export class SelectComponent /* */ {
+  private overlay = inject(Overlay);
+  private elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  private createOverlay(): OverlayRef {
+    const positionStrategy = this.overlay
+      .position()
+      .flexibleConnectedTo(this.elementRef)
+      .withPositions([{ originX: "start", originY: "top", overlayX: "start", overlayY: "top" }]);
+
+    return this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: "",
+      positionStrategy,
+      minWidth: this.elementRef.nativeElement.clientWidth,
+    });
+  }
+}
+```
+
+## Adding a11y
+
+Built Select has support for keyboard shortcuts.
+You can open an overlay with `Enter`, `Arrow up` or `Arrow down`.
+It has been done thanks to `@angular/cdk/a11y` library and `ActiveDescendantKeyManager`.
+
+```ts
+import { ActiveDescendantKeyManager } from "@angular/cdk/a11y";
+
+@Component({
+  selector: "app-select",
+  /* */
+})
+export class SelectComponent /* */ {
+  private keyManager!: ActiveDescendantKeyManager<HightlightableOptionDirective>;
+
+  ngAfterViewInit(): void {
+    this.keyManager = new ActiveDescendantKeyManager(this.optionElsQuery).withHomeAndEnd().withWrap().withPageUpDown();
+  }
+}
+```
+
+<Note type="HELPFUL">
+
+To close an overlay you can press Escape.
+
+</Note>
+
+## Defining data source
+
+Select require to implement data source.
+It is the only way to pass data to select.
+In addition to defining the data retrieval source is required to
+define a property to bind to control – a way to retrieve a representation of the selected value.
+
+```ts
+export abstract class SelectDataSource<T> {
+  abstract getOptions(searchValue$: Observable<string>): Observable<T[]>;
+  abstract getBindedValue(value: T): unknown;
+}
+```
+
+```ts
+@Component({
+  selector: "app-select",
+  /* ... */
+})
+export class SelectComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {
+  private selectDataSource = inject(SelectDataSource);
+  protected options$ = this.selectDataSource.getOptions(this.searchedValue$);
+
+  /* ... */
+
+  selectOption(option: unknown): void {
+    const bindedValue = this.selectDataSource.getBindedValue(option);
+    this.emitValue(bindedValue);
+    /* ... */
+  }
+
+  registerOnChange(fn: any): void {
+    this.emitValue = fn;
+  }
+
+  /* ... */
+}
+```
+
+### Example data sources
+
+#### Country data source
+
+The example country data source as directive can be used anywhere in a application
+
+```ts
+@Directive({
+  selector: "[countryDataSource]",
+  standalone: true,
+  providers: [
+    {
+      provide: SelectDataSource,
+      useExisting: CountryDataSourceDirective,
+    },
+  ],
+})
+export class CountryDataSourceDirective implements SelectDataSource<Country> {
+  private service = inject(CountryService);
+
+  getOptions(searchValue$: Observable<string>) {
+    return searchValue$.pipe(
+      switchMap((searchValue) =>
+        this.service.countries$.pipe(
+          map((countries) => countries.filter((country) => country.name.includes(searchValue)).slice(0, 15)),
+        ),
+      ),
+    );
+  }
+
+  getBindedValue(value: Country): unknown {
+    return value.code;
+  }
+}
+```
+
+You just need to provide directive to the `app-select` component
+
+```html
+<app-select countryDataSource formControlName="country">
+  <!-- ... -->
+</app-select>
+```
+
+#### Github repository data source
+
+The example github repository data source as directive can be used anywhere in a application
+
+```ts
+@Directive({
+  selector: "[repositoryDataSource]",
+  standalone: true,
+  providers: [
+    {
+      provide: SelectDataSource,
+      useExisting: RepositoryDataSourceDirective,
+    },
+  ],
+})
+export class RepositoryDataSourceDirective implements SelectDataSource<RepositoryItem> {
+  private service = inject(RepositoryService);
+
+  getOptions(searchValue$: Observable<string>) {
+    return searchValue$.pipe(
+      debounceTime(500),
+      switchMap((searchValue) => this.service.repositories({ searchValue })),
+    );
+  }
+
+  getBindedValue(value: RepositoryItem): string {
+    return value.name;
+  }
+}
+```
+
+You just need to provide directive to the `app-select` component
+
+```html
+<app-select repositoryDataSource formControlName="githubProfile">
+  <!-- ... -->
+</app-select>
+```
+
+## Option template
+
+To define a view of an option you have to define a template inside `app-select`.
+
+```ts
+@Component({
+  selector: "app-select",
+  template: `
+    <!-- Fragment of app-select template to display available options -->
+
+    <li *ngFor="let option of options$ | async">
+      <ng-template
+        [ngTemplateOutlet]="optionTemplateDirective.template"
+        [ngTemplateOutletContext]="{ $implicit: option }"
+      ></ng-template>
+    </li>
+
+    <!-- ... -->
+  `,
+  /* ... */
+})
+export class SelectComponent /* */ {
+  // Fragment of app-select logic to get provided template
+  @ContentChild(OptionTemplateDirective, { static: true }) optionTemplateDirective!: OptionTemplateDirective;
+  private selectDataSource = inject(SelectDataSource);
+  protected options$ = this.selectDataSource.getOptions(this.searchedValue$);
+
+  /* ... */
+}
+```
+
+```html
+<!-- Example of option template -->
+
+<app-select someDataSource>
+  <ng-content *appOptionTemplate="let item">{{ item | json }}</ng-content>
+</app-select>
+```
+
+<Note type="IMPORTANT">
+
+To have types (`ng-template` does not provide types) you should create a component with appropriate input.
+
+```ts
+@Component({
+  selector: "app-country-select-option",
+  template: ` <!-- ... --> `,
+  styles: [
+    /* ... */
+  ],
+  standalone: true,
+})
+export class CountrySelectOptionComponent {
+  @Input({ required: true }) data!: Country;
+}
+```
+
+```html
+<app-select countryDataSource>
+  <app-country-select-option *appOptionTemplate="let item" [data]="item" />
+</app-select>
+```
+
+</Note>
+
+## Separate template for option
+
+In a scenario where you need to have a different template per option, you should put `ngIf` or `ngSwitch` into template.
+
+```html
+<app-select someDataSource>
+  <ng-container *appOptionTemplate="let item">
+    <ng-container *ngIf="item.code === 'CITY'">
+      <!-- Some city template -->
+    </ng-container>
+    <ng-container *ngIf="item.code === 'COUNTRY'">
+      <!-- Some country template -->
+    </ng-container>
+  </ng-container>
+</app-select>
+```

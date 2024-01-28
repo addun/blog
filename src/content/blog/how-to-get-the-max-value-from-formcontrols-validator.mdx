@@ -1,0 +1,109 @@
+---
+oldId: 1857
+id: IFBCEz
+title: How to get the max value from FormControl’s validator
+description: |
+  Unfortunately `hasValidator` does not work well with validators created dynamically like `Validator.max` but there is a solution that allows getting information about max value anyway.
+tags:
+  - angular
+  - angular-16
+  - angular-forms
+  - reactive-forms
+thumbnail: "../images/angular.png"
+repository: min-max-validator
+---
+
+import { Demo } from "@components/Demo";
+import { Note } from "@components/Note";
+
+## Demo
+
+<Demo height={300} repository={frontmatter.repository} />
+
+## Problem with `hasValidator`
+
+Let’s create a simple `FormControl` with `max` validator.
+To check if the control has some validator we can use the `hasValidator` method
+but it does not work correctly for `Validators.max(18)` because calling `Validators.max(18)`
+creates another reference and the implementation of `hasValidator` check validators by reference.
+
+```ts
+import { FormControl, Validators } from "@angular/forms";
+
+const ageControl = new FormControl(null, [Validators.max(18)]);
+passwordControl.hasValidator(Validators.max(18)); // -> false
+
+// ---
+
+const max18Validator = Validators.max(18);
+const ageControl = new FormControl(null, [max18Validator]);
+confirmPassword.hasValidator(max18Validator); // -> true
+```
+
+## Checking if a control has a `max` validator without `hasValidator`
+
+To check if the control has a `max` validator we can use knowledge about numbers.
+We can get all control’s validators and check if we get the `max` error for `Infinity`.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+const maxAgeControl = new FormControl(null, [Validators.max(18)]);
+const hasMaxValidator = hasControlMaxValidator(maxAgeControl);
+console.log(hasMaxValidator); //-> true
+
+function hasControlMaxValidator(control: AbstractControl): boolean {
+  const validator = control.validator;
+
+  if (validator === null) {
+    return false;
+  }
+
+  const errors = validator(new FormControl(Infinity)) ?? {};
+  return "max" in errors;
+}
+```
+
+<Note type='HELPFUL'>
+
+Because nothing can be bigger than `Infinity` we are sure that we cause an error if the validator contains `max` validator.
+
+</Note>
+
+## Getting max value from the validator
+
+To get information about the max value from the validator first we need to cause an error.
+In the error details, we have information about the max value and actual value of a control.
+
+```ts
+import { AbstractControl, FormControl, Validators } from "@angular/forms";
+
+const maxAgeControl = new FormControl(null, [Validators.max(18)]);
+const maxValue = getMaxValue(maxAgeControl);
+console.log(maxValue); //-> 18
+
+function getMaxValue(control: AbstractControl, fallback: number): number;
+function getMaxValue(control: AbstractControl): number | undefined;
+function getMaxValue(control: AbstractControl, fallback?: number): number | undefined {
+  const validator = control.validator;
+
+  if (validator === null) {
+    return fallback;
+  }
+
+  const errors = validator(new FormControl(Infinity)) ?? {};
+  return "max" in errors ? errors["max"]["max"] : fallback;
+}
+```
+
+<Note type='HELPFUL'>
+
+We have to write `errors['max']['max']` because first `max` is the error
+key and the second `max` is the value passed as the argument of `Validators.max` function.
+
+```ts
+const control = new FormControl(6, Validators.max(3));
+console.log(control.errors); // { max: { max: 3, actual: 6 } }
+```
+
+</Note>

@@ -1,0 +1,208 @@
+---
+oldId: 1661
+id: n0sd0V
+title: Lazy loaded stepper base on a route in Angular
+description: |
+  A stepper is a type of input control that allows the user to increment or decrement
+  a numerical value using predefined steps. See how to create a stepper with lazy loaded steps in Angular.
+tags:
+  - angular
+  - angular-16
+thumbnail: "../images/angular.png"
+repository: route-stepper
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Demo
+
+<Demo height={600} repository="route-stepper" />
+
+## Defining base schema
+
+First of all, we need to define how our component should look.
+Because we want to lazy load steps individuals, we have to define `router-outlet` inside the stepper’s template.
+To define which header is connected to which path, we have to also provide a path name to the `appStepLabel` directive.
+
+```html
+<app-stepper>
+  <ng-template appStepLabel="user"> User form </ng-template>
+  <ng-template appStepLabel="address"> Address form </ng-template>
+  <ng-template appStepLabel="account"> Account form </ng-template>
+  <ng-template appStepLabel="summary"> Summary </ng-template>
+
+  <router-outlet></router-outlet>
+</app-stepper>
+```
+
+## Routes configuration
+
+After adding `router-outlet` it is time to define routes. We do it like any other route. There is nothing special.
+
+```ts
+const routes: Routes = [
+  {
+    path: "user",
+    loadChildren: () => import("./modules/process/user"),
+  },
+  {
+    path: "address",
+    loadChildren: () => import("./modules/process/address"),
+  },
+  // more steps
+];
+```
+
+<Note type="HELPFUL">
+
+Do not forget that you can also implement `canActivate`, `canDeactivate` or even `outlet`.
+
+```ts
+{
+  path: 'user',
+  loadChildren: () => import('./modules/process/user'),
+  outlet: 'stepper',
+  canActivate: [/* */],
+  canDeactivate: [/* */],
+  // more configuration
+}
+```
+
+</Note>
+
+## Creating StepLabelDirective
+
+The directive has just to carry a template and information for which path it is.
+Whole logic will be placed in `StepperComponent`.
+
+```ts
+@Directive({
+  selector: "[appStepLabel]",
+})
+export class StepLabelDirective {
+  @Input({ required: true, alias: "appStepLabel" }) routerPath!: string;
+
+  constructor(public templateRef: TemplateRef<void>) {}
+}
+```
+
+## Building StepperComponent
+
+### Template
+
+The template `StepperComponent` is very easy. It consists of two parts – displaying a header and content.
+
+```html
+<ol>
+  <li *ngFor="let label of labels$ | async">
+    <ng-template [ngTemplateOutlet]="label"></ng-template>
+  </li>
+</ol>
+
+<ng-content></ng-content>
+```
+
+### Logic
+
+The component has to get defined labels and display in the template.
+
+```ts
+@Component({
+  /* */
+})
+export class StepperComponent implements AfterContentInit {
+  @ContentChildren(StepLabelDirective, { descendants: false })
+  labelsQueryList!: QueryList<StepLabelDirective>;
+
+  private contentInit$ = new ReplaySubject<void>(1);
+
+  labels$ = this.contentInit$.pipe(
+    switchMap(() => this.labelsQueryList.changes),
+    startWith(void 0),
+    map(() => this.labelsQueryList.toArray().map((el) => el.templateRef)),
+  );
+
+  ngAfterContentInit(): void {
+    this.contentInit$.next();
+    this.contentInit$.complete();
+  }
+}
+```
+
+<Note type='HELPFUL'>
+
+Label order is defined by the template. To change the order just reorder ng-template.
+
+```html
+<!-- this label will be first -->
+<ng-template appStepLabel="user"> User form </ng-template>
+
+<!-- this label will be second -->
+<ng-template appStepLabel="address"> Address form </ng-template>
+
+<!-- etc -->
+<ng-template appStepLabel="account"> Account form </ng-template>
+```
+
+</Note>
+
+### Highlight active step
+
+Because the current step is saved in a router, we have to get the current index based on the path. To do it we should take the path from the route config.
+
+```ts
+@Component({
+  /* */
+})
+export class StepperComponent implements AfterContentInit {
+  /* ... */
+
+  private activationStart$ = this.router.events.pipe(
+    filter((event): event is ActivationEnd => event instanceof ActivationEnd),
+  );
+
+  activeStepIndex$ = this.contentInit$.pipe(
+    switchMap(() => this.activationStart$),
+    map((event) => {
+      const path = event.snapshot.routeConfig?.path;
+      const labels = this.labelsQueryList.toArray();
+
+      return labels.findIndex((label) => label.routerPath === path);
+    }),
+    filter((index) => index !== -1),
+    map((index) => ({ index })),
+  );
+
+  /* ... */
+}
+```
+
+Thanks to defining the variable we can highlight current and fulfilled steps. All that we need now is to add classes to the element based on logic.
+
+```html
+<ng-container *ngIf="activeStepIndex$ | async as activeStepIndex">
+  <li
+    *ngFor="let label of labels$ | async; let i = index"
+    [class.done]="i < activeStepIndex.index"
+    [class.active]="i === activeStepIndex.index"
+  >
+    <ng-template [ngTemplateOutlet]="label"></ng-template>
+  </li>
+</ng-container>
+```
+
+## Navigating between steps
+
+Because steps are defined as a route component, we go through stepper just like between normal pages.
+
+```html
+<form id="addressForm">
+  <!-- ... -->
+</form>
+
+<div class="navigation">
+  <button type="button" routerLink="/user">Previous step</button>
+  <button form="addressForm" type="submit" routerLink="/account">Next step</button>
+</div>
+```

@@ -1,0 +1,35 @@
+---
+oldId: 999
+id: 52nYVj
+title: Add IDs to all headings on a page in WordPress
+description: |
+  See how to set the ID attribute for a heading, based on the heading content.
+tags:
+  - wordpress
+  - php
+  - gutenberg
+thumbnail: "../images/wordpress.png"
+repository:
+---
+
+## Add a ID attribute for all heading
+
+```php
+<?php
+add_filter('the_content', 'add_id_attribute_to_headings');
+
+function add_id_attribute_to_headings($content): string {
+  return preg_replace_callback('#<(h[1-6])(.*?)>(.*?)</(h[1-6])>#', 'add_id_attribute_to_heading_callback', $content);
+}
+
+function add_id_attribute_to_heading_callback($match): string {
+  [$full, $el_start, $attributes, $content, $el_end] = $match;
+
+  if (str_contains($full, ' id="')) {
+    return $full;
+  }
+
+  $id = sanitize_title_with_dashes($content);
+  return '<{$el_start} id="{$id}" {$attributes}>{$content}</{$el_end}>';
+}
+```

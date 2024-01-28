@@ -1,0 +1,121 @@
+---
+slug: functional-router-guards-the-new-way-of-creating-guards-in-angular
+oldId: 1746
+id: Z4veXV
+title: Functional router guards – the new way of creating guards in Angular
+description: |
+  Before Angular v15 we had to create guards as a class which was a big boilerplate even though we had simple logic.
+  Additionally, passing parameters to guard via data was not strict, so we were able to have a typo and the compiler did not throw an error.
+  Everything changed when Angular v15 comes and provides functional router guards.
+tags:
+  - angular
+  - angular-15
+thumbnail: "../images/angular.png"
+repository: permission-manager
+---
+
+import { Demo } from "@components/Demo";
+import { Note } from "@components/Note";
+
+## Demo
+
+<Demo height={600} repository={frontmatter.repository} />
+
+## Creating AuthService
+
+Let’s create an AuthService with a method to check if a user has required permission.
+
+```ts
+import { Injectable } from "@angular/core";
+
+export type Permission = "reading" | "writing";
+
+@Injectable({ provideIn: "root" })
+export class AuthService {
+  private userPermissions: Permission[] = [];
+
+  hasPermission(permission: Permission): boolean {
+    return this.userPermissions.includes(permission);
+  }
+}
+```
+
+## The old way to create a guard (classes)
+
+In the old way, guards are implemented as classes.
+There is no possibility to pass additional information to `canActivate` function.
+To do it you had to get `data` from `route` and define this in route configuration while losing strict typing.
+
+```ts
+import { Injectable } from "@angular/core";
+import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot } from "@angular/router";
+import { AuthService } from "./auth.service";
+
+// The old way to create a guard using classes
+@Injectable({ provideIn: "root" })
+export class PermissionGuard implements CanActivate {
+  constructor(private authService: AuthService) {}
+
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+    // `requiredPermission` has type `any`
+    const requiredPermission = route.data.requiredPermission;
+    return this.authService.hasPermission(requiredPermission);
+  }
+}
+
+// example routes
+
+const routes: Routes = [
+  {
+    path: "protected",
+    component: ProtectedComponent,
+    canActivate: [PermissionGuard],
+    data: { requiredPermission: "rading" }, // typo and no error
+  },
+  // Other routes...
+];
+```
+
+## The new way to create guard (functions)
+
+Angular v15 provides a method `inject` and possibility to define a guard as a function.
+That means you do not have to create a class, you just need one function.
+
+```ts
+// Check if user is admin
+const route = {
+  path: "protected",
+  canActivate: [() => inject(AuthService).hasPermission("rading")], // typo and error!
+};
+```
+
+Moreover, you can create a factory function to remove the boilerplate and keep the code to a minimum.
+
+```ts
+// Factory to check if user has required permission
+export function provideGuardForPermission(permission: Permission) {
+  return () => inject(AuthService).hasPermission(permission);
+}
+```
+
+After that, you can use the created function in places where it is required.
+
+```ts
+export const ROOT_ROUTES: Routes = [
+  {
+    path: "a",
+    loadComponent: () => import("./page-a.component"),
+    // Examples of usage provideGuardForPermission factory
+    canActivate: [provideGuardForPermission("writing")],
+  },
+  {
+    path: "b",
+    loadComponent: () => import("./page-b.component"),
+    canMatch: [provideGuardForPermission("reading")],
+  },
+  {
+    path: "b",
+    loadComponent: () => import("./403.component"),
+  },
+];
+```

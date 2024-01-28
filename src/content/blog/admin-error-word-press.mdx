@@ -1,0 +1,64 @@
+---
+oldId: 1630
+id: BAbOPY
+title: Display an error message in the admin panel if a plugin is not activated in WordPress
+description: |
+  As a WordPress theme developer, you may encounter situations
+  where a plugin is required to use a particular functionality on a theme.
+  In such cases, it's important to check if the required plugin is installed and activated.
+  If the plugin is not installed, it is nice to display an error message
+  to inform the user that the feature is not available and that the plugin needs to be installed.
+tags:
+  - wordpress
+  - php
+thumbnail: "../images/wordpress.png"
+repository:
+---
+
+## Display error if a plugin is not installed
+
+Displaying an error message when a required plugin is not installed is a useful way
+to inform users about missing features and encourage them to install the necessary plugin.
+By following the code outlined below, you can easily add this functionality to your WordPress website.
+
+```php
+<?php
+add_action('admin_notices', 'my_plugin_error_notice');
+
+function my_plugin_error_notice()
+{
+    if (!is_plugin_active('plugin-directory/plugin-main-file.php')) : ?>
+        <div class="error">
+            <p>The required plugin is not installed. Please install the plugin to use this feature.</p>
+        </div>
+    <?php
+    endif;
+}
+```
+
+## Display error message if ACF is not installed
+
+ACF (Advanced Custom Fields) is a popular WordPress plugin that allows users to
+easily create custom fields and add them to posts, pages, and custom post types.
+ACF is a user-friendly and flexible plugin that enables users to create complex custom fields without having to write any code.
+
+To check if the ACF plugin is installed on a WordPress website, you can use the following code.
+
+```php
+<?php
+
+add_action('admin_notices', 'display_acf_error_if_not_installed');
+
+function display_acf_error_if_not_installed()
+{
+    if (!is_plugin_active('advanced-custom-fields/acf.php') && !is_plugin_active('advanced-custom-fields-pro/acf.php')) : ?>
+        <div class="error">
+            <p>The required plugin is not installed. Please install the plugin to use this feature.</p>
+        </div>
+    <?php
+    endif;
+}
+```
+
+This code can help you ensure that your custom code or plugin
+will work properly with ACF installed, and can provide a fallback solution if ACF is not installed.

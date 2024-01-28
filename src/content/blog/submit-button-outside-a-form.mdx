@@ -1,0 +1,82 @@
+---
+oldId: 1699
+id: HS2K6I
+title: Submit button outside a form
+description: |
+  button is an element that can perform an action or trigger an event when clicked.
+  It can have one of three types: submit, reset, or button.
+  In this article, we will take a look at how to add submit button outside a form.
+tags:
+  - html
+thumbnail: "../images/html.png"
+repository: route-stepper
+---
+
+import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
+
+## Default type attribute
+
+### Inside form element
+
+The default type attribute value for an element in HTML depends on the context in which it is used.
+
+If the `<button>` element is used within a `<form>` element and the `type`
+attribute is not explicitly specified, then the default value is `submit`.
+This means that clicking the button (or pressing `enter`) will submit the form data to the server.
+
+```html
+<form action="example.php" method="post">
+  <input type="text" name="username" />
+  <button>Submit</button>
+  <button type="submit">Second submit</button>
+</form>
+```
+
+### Outside form element
+
+If the `<button>` element is used outside a `<form>` element, or the `type`
+attribute is explicitly set to `button`, then the button is considered a generic button with no default behavior.
+
+```html
+<form action="example.php" method="post">
+  <!--...-->
+</form>
+
+<button>Generic button</button>
+<button type="button">Also generic button</button>
+```
+
+### Submit button outside form
+
+By setting the `form` attribute of form control to the `id` of a form element, you can associate the control with the form.
+This association allows the browser to collect the data entered in the control
+and submit it along with the data from the other controls in the form when the form is submitted.
+
+```html
+<section>
+  <header>
+    <h2>Modal title</h2>
+  </header>
+
+  <form id="projectForm">
+    <label for="organization">Organization</label>
+    <input id="organization" type="text" autocomplete="off" />
+
+    <label for="Project">Project</label>
+    <input id="Project" type="text" autocomplete="off" />
+  </form>
+
+  <footer>
+    <button form="projectForm" type="submit">Submit form</button>
+  </footer>
+</section>
+```
+
+<Note type="HELPFUL">
+
+Take a look at the button. Although `button` is outside `form` element, thanks to `form` attribute, `button` is a part of the `projectForm` form.
+
+Thanks for that, pressing enter having the focus on the form, the form will be submitted.
+
+</Note>
