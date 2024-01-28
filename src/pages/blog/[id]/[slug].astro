@@ -6,6 +6,7 @@ import PostIntro from "@components/PostIntro.astro";
 import Donation from "@components/Donation.astro";
 import { GitHubLink } from "@components/GitHubLink";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { getBlogPostPath } from "../../../utils/blog-id";
 
 export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");
@@ -24,7 +25,27 @@ const { description, tags, thumbnail, title, repository } = Astro.props.entry.da
 const { Content } = await entry.render();
 ---
 
-<BaseLayout title={title}>
+<BaseLayout>
+  <Fragment slot="head">
+    <title>{title}</title>
+
+    <meta name="title" content={title} />
+    <meta property="og:title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={Astro.url} />
+
+    <!-- @todo: add dates to article -->
+    <!-- <meta property="article:published_time" content="2024-01-07T15:02:15+01:00"> -->
+    <!-- <meta property="article:modified_time" content="2024-01-07T21:11:22+01:00"> -->
+
+    <meta property="og:image" content={thumbnail.src} />
+    <meta property="og:image:width" content={thumbnail.width.toString()} />
+    <meta property="og:image:height" content={thumbnail.height.toString()} />
+    <meta property="og:image:type" content={thumbnail.format} />
+  </Fragment>
+
   <main class="mx-2 md:mx-4">
     <PostIntro title={title} description={description} tags={tags.map((tag) => tag.slug)} thumbnail={thumbnail} />
 
