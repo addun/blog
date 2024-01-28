@@ -28,6 +28,7 @@
     "@astrojs/react": "^3.0.9",
     "@astrojs/sitemap": "^3.0.4",
     "@astrojs/tailwind": "^5.1.0",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/react": "^18.2.47",
     "@types/react-dom": "^18.2.18",
     "astro": "^4.1.2",
@@ -41,7 +42,6 @@
     "zone.js": "^0.14.3"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.10",
     "prettier": "^3.2.1",
     "prettier-plugin-astro": "^0.12.3"
   }
