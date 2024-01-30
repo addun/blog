@@ -18,7 +18,7 @@ export function GitHubLink({ repository }: Props) {
         </p>
 
         <svg
-          className="fill-black max-w-8 w-full opacity-70"
+          className="fill-black max-w-10 w-full opacity-70 fill-current"
           xmlns="http://www.w3.org/2000/svg"
           width="60"
           height="60"
