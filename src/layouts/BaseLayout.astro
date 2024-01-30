@@ -1,6 +1,7 @@
 ---
 import Footer from "@components/Footer.astro";
 import GTM from "@components/GTM.astro";
+import Navbar from "@components/Navbar.astro";
 ---
 
 <html lang="en">
@@ -18,6 +19,8 @@ import GTM from "@components/GTM.astro";
     <link rel="profile" href="https://gmpg.org/xfn/11" />
   </head>
   <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
+    <Navbar />
+
     <slot />
 
     <Footer />
