@@ -7,7 +7,7 @@ import PostIntroList from "@components/PostIntroList.astro";
 
 const notSorted = await getCollection("blog");
 
-const blogEntries = notSorted.toSorted((a, b) => (b.data.oldId > a.data.oldId ? 1 : -1));
+const blogEntries = notSorted.toSorted((a, b) => (b.data.date > a.data.date ? 1 : -1));
 
 const dataEntries = blogEntries.map((entry) => ({
   id: entry.data.id,

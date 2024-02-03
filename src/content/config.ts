@@ -5,7 +5,7 @@ const blogCollection = defineCollection({
   schema: ({ image }) =>
     z.object({
       id: z.string().length(6),
-      oldId: z.number(),
+      oldId: z.number().optional(),
       title: z.string(),
       description: z.string(),
       tags: z.array(reference("tags")),
