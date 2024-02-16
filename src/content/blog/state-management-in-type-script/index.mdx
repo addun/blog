@@ -2,7 +2,14 @@
 id: fTWq6d
 oldId: 1963
 title: State management in TypeScript
-description: See how to manage state in Front-End applications that use TypeScript
+description: |
+  You can find plenty of examples showing how state management libraries work,
+  few people focus on it why do we need state management and what problems does it cause (solve?).
+
+  In this article I will walk you through, step by step,
+  what common application state issues might look like
+  applications and how to deal with them regardless
+  of whether you use because it doesn't matter what you use, only for what purpose.
 tags:
   - angular
   - angular-17
@@ -14,6 +21,7 @@ repository: "state-management"
 ---
 
 import { Note } from "@components/Note";
+import { Demo } from "@components/Demo";
 
 ## Loading state
 
@@ -24,11 +32,29 @@ something is happening (instead of displaying a blank page).
 To do this we can create a variable `loading` and write in our
 template logic to display one of two views: _loading view_ or _data view_.
 
+<Demo height={400} repository={frontmatter.repository} path="loading-state" branch="main" />
+
 ```ts
-@if (loading === false) {
-  <table>...</table>;
-} @else {
+export class ExampleComponent {
+  private toDos$ = inject(TodoService).getToDos({ limit: 3 });
+
+  loading = true;
+  toDos: ToDo[] = [];
+
+  constructor() {
+    this.toDos$.subscribe((toDos) => {
+      this.toDos = toDos;
+      this.loading = false;
+    });
+  }
+}
+```
+
+```jsx
+if (loading) {
   <p>Spinner</p>;
+} else {
+  <table> ... </table>;
 }
 ```
 
@@ -46,43 +72,55 @@ But this does not cover all needs.
 We also want to store data about the error and also items to display.
 This makes our component bigger and less readable.
 
+<Demo height={450} repository={frontmatter.repository} path="more-states" branch="main" />
+
 ```ts
-@Component({
-  template: `
-    @if (loading === false) {
-      <table>
-        ...
-      </table>
-      @if (refreshing === true) {
-        <p>Inner spinner</p>
-      }
-    } @else {
-      <p>Spinner</p>
-    }
-    @if (error === true) {
-      <p>Something bad happened</p>
-    }
-  `,
-})
-export class DataToDisplay implements OnInit {
-  private service = inject(SomeService);
+export class DataToDisplay {
+  private toDos$ = inject(TodoService).getToDos({ limit: 3 });
+
   loading = true;
   refreshing = false;
   error = false;
+  toDos: ToDo[] = [];
+  errorData: Error | null = null;
 
-  ngOnInit() {
-    this.service.get().subscribe({
-      next: () => (this.loading = false),
-      error: () => (this.error = true),
-    });
+  constructor() {
+    this.loadToDos();
   }
 
   refresh() {
     this.refreshing = true;
-    this.service.get().subscribe({
-      next: () => (this.refreshing = false),
-      error: () => (this.error = true),
+    this.loadToDos();
+  }
+
+  private loadToDos() {
+    this.toDos$.subscribe({
+      next: (toDos) => {
+        this.loading = false;
+        this.refreshing = false;
+        this.error = false;
+        this.toDos = toDos;
+      },
+      error: (error) => {
+        this.error = true;
+        this.loading = false;
+        this.refreshing = false;
+        this.errorData = error;
+      },
     });
+  }
+}
+```
+
+```tsx
+if (loading) {
+  <p>Spinner</p>;
+} else if (error) {
+  <p>Something bad happened</p>;
+} else {
+  <table>...</table>;
+  if (refreshing) {
+    <p>Inner spinner</p>;
   }
 }
 ```
@@ -98,15 +136,15 @@ object and storing all data needed to display the view in a single object.
 export interface ComponentState {
   loading: boolean;
   refreshing: boolean;
-  tableData: Item[] | null;
+  toDos: Item[];
   error: boolean;
-  errorData: { type: string } | null;
+  errorData: Error | null;
 }
 
 const INITIAL_STATE: ComponentState = {
   loading: true,
   refreshing: false,
-  tableData: null,
+  toDos: [],
   error: false,
   errorData: null,
 } as const;
@@ -117,18 +155,32 @@ and replace all properties with single-state objects.
 Thanks to that our component is more readable.
 
 ```ts
-export class DataToDisplay implements OnInit {
-  private service = inject(SomeService);
+export class DataToDisplay {
+  private toDos$ = inject(TodoService).getToDos({ limit: 3 });
+
   state = getInitialState();
 
-  ngOnInit() {
-    this.service.get().subscribe({
-      next: (data) => {
+  constructor() {
+    this.loadToDos();
+  }
+
+  refresh() {
+    this.state.refreshing = true;
+    this.loadToDos();
+  }
+
+  private loadToDos() {
+    this.toDos$.subscribe({
+      next: (toDos) => {
         this.state.loading = false;
-        this.state.tableData = data;
+        this.state.refreshing = false;
+        this.state.error = false;
+        this.state.toDos = toDos;
       },
       error: (error) => {
         this.state.error = true;
+        this.state.loading = false;
+        this.state.refreshing = false;
         this.state.errorData = error;
       },
     });
@@ -152,27 +204,30 @@ export interface ComponentState {
 
 </Note>
 
+<Demo height={450} repository={frontmatter.repository} path="state-object" branch="main" />
+
 ## Problem with types
 
-Imagine a situation where we want to create an effect to measure the error count on our page.
-When an error occurs we want to get the type from the `errorData` property.
-We should not have a situation where `error` is set as `true` but `errorData` is `null`.
+Imagine a situation where we want to create an effect to log an error message.
+When an error occurs we want to get the `errorData` property.
 
 ```ts
 export function errorCountEffect(state: ComponentState): void {
   if (state.error === true) {
-    const type = state.errorData.type; // but errorData can be null!
+    const type = state.errorData?.message; // I had to add `?` because `errorData` can be null
 
-    ++errorCounter[type];
     // ...
   }
 }
 ```
 
-<Note type='IMPORTANT'>
+<Note type='HELPFUL'>
 
-We can add checking if `errorData` is defined but that means additional,
-redundant checks because when `error` is `true` then `errorData` should always be set.
+We should not have a situation where `error` is set as `true` but `errorData` is `null`.
+
+```ts
+const type = state.errorData!.message;
+```
 
 </Note>
 
@@ -192,7 +247,7 @@ we can create interfaces for each state and connect them with [Union types](http
 export interface NoErrorState {
   loading: boolean;
   refreshing: boolean;
-  tableData: Item[] | null;
+  toDos: ToDo[];
   error: false;
   errorData: null;
 }
@@ -200,9 +255,9 @@ export interface NoErrorState {
 export interface ErrorState {
   loading: boolean;
   refreshing: boolean;
-  tableData: Item[] | null;
+  toDos: ToDo[];
   error: true;
-  errorData: { type: string };
+  errorData: Error;
 }
 
 export type ComponentState = NoErrorState | ErrorState;
@@ -215,8 +270,8 @@ and TypeScript will know when `error` is `true` then `errorData` is defined.
 ```ts
 export function errorCountEffect(state: ComponentState): void {
   if (state.error === true) {
-    const type = state.errorData.type; // there is no error now!
-    ++errorCounter[type];
+    const type = state.errorData.message; // There is no error now! No need to add `?`.
+
     // ...
   }
 }
@@ -224,7 +279,8 @@ export function errorCountEffect(state: ComponentState): void {
 
 <Note type='IMPORTANT'>
 
-TypeScript knows that when `error` is `true` then `state` inside `if` block has type `ErrorState`.
+TypeScript knows that when `error` is `true` then `state` inside `if` block has type `ErrorState`
+([TS Playground](https://www.typescriptlang.org/play?#code/JYOwLgpgTgZghgYwgAgCoHsAi7kG9kC+AUERAB4AO6UYyoksiKAcugKJRTUDKYckeIsmHIANujgATUAHMAXMgBG6dKIhwQAbiEioEGHoDOAC1kLlq9Vp3CwWdIYUZsAbQC62kcmhcoC+KKGEJ4iPtSY-HAKIACuoqLaxKSU1LT00PBIyBy+vPwouDZiEtIg8koqahohwnoGECZmFZbVRXbYjmj27jXenNQKYFAxwUVhUBF8CjnUiSTkVDTIYACeFCgAwugAtlQgEOB5AgC8yKwzUEcoAD7Z-Zd8kNrzKUswMSAIYMDoIH2+Ww+YDYMBgEC+AApDI8IAotrtfgcwFcAJQKABu6GAkkERWh+V6AHpCcgAHoAfhIXmAMGQUJhADpxshjqzlsMICjcV4vPinkUvMSyZSBSIEL9ocs1ihTnyIEz7pM4Aztg1DHAZKMvMQCEA)).
 
 </Note>
 
@@ -233,25 +289,23 @@ TypeScript knows that when `error` is `true` then `state` inside `if` block has 
 When we know that we can create many states and connect
 them into a single type we can define all possible states with interfaces.
 
-![All states](./all-states.png)
-
 ```ts
 interface LoadingState {
   loading: true;
 }
 
 interface LoadedState {
-  data: Item[];
+  toDos: ToDo[];
 }
 
 interface RefreshingState {
   refreshing: true;
-  data: Item[];
+  toDos: ToDo[];
 }
 
 interface ErrorState {
   error: true;
-  errorData: { type: string };
+  errorData: Error;
 }
 
 export type ComponentState = LoadingState | LoadedState | RefreshingState | ErrorState;
@@ -259,28 +313,30 @@ export type ComponentState = LoadingState | LoadedState | RefreshingState | Erro
 
 ## Checking current state
 
-Imagine another situation where we want to check which state we are now.
+Lets go back to our effect where we want to check current state.
 To do this we have to check which properties are defined and which are not.
-This operation is not readable and each time we have to know what to check.
 
 ```ts
-function refreshState(currentState: ComponentState): RefreshingState {
-  if ("data" in currentState) {
-    return {
-      refreshing: true,
-      data: currentState.data,
-    };
+export function errorCountEffect(state: ComponentState): void {
+  if ("error" in state) {
+    const message = state.errorData.message;
+    // ...
   }
-
-  throw new Error("Current state is not loaded. You cannot refresh current state");
 }
 ```
+
+<Note type='CRITICAL'>
+
+This statement is not readable and each time we have to know what to check.
+
+</Note>
 
 <Note type='IMPORTANT'>
 
 Keyword `in` is used as a type guard.
 Because only `LoadedState` has `data` property _TypeScript_
-knows that inside `if` variable `currentState` have to be `LoadedState`.
+knows that inside `if` variable `currentState` have to be `LoadedState`
+([TS Playground](https://www.typescriptlang.org/play?#code/JYOwLgpgTgZghgYwgAgCoHsAi7kG9kC+AUEaJLIigDLpwAmoA5gMphyR5HLfIA2tDEIwBcyMFACuEANxFipcNHhJkNehDqt2KXFx5gs6AM6iM2ANoBdWfLJLKyAEoQYUCEYAWTLR109kbq7uXkKi4lKy-gbYJmiGVjYkdhQqAKJQUOhQPjp63NCZUGGSMnnIBVmY7HCi6YWJRBAAHgAOWWBiAJ4tKADC6AC2bSAQ4DnIALyqAt5sHAA+0+qacyiLzkGes9rIi3VZObKNre3IMBIgCGDA6CDlGVn9F2CpMDAQVwAURqui-UO3UZgHIASlEADd0MA6Jx-D9tJEeAB6JHIAB6AH4ysAYMhPgAiCpQfHIUDIeGQEGcMpw1aI-zcFHorE0ngIW4-Lo9Sbk1YAOiJVTYfIG7iMcEYpQZyNRfLlZWIBCAA)).
 
 </Note>
 
@@ -290,22 +346,22 @@ To make easier checking current state we can create a special property which wil
 
 ```ts
 export interface LoadingState {
-  state: "loading";
+  state: "LOADING";
 }
 
 export interface LoadedState {
-  state: "loaded";
-  data: ToDo[];
+  state: "LOADED";
+  toDos: ToDo[];
 }
 
 export interface RefreshingState {
-  state: "refreshing";
-  data: ToDo[];
+  state: "REFRESHING";
+  toDos: ToDo[];
 }
 
 export interface ErrorState {
-  state: "error";
-  error: unknown;
+  state: "ERROR";
+  error: Error;
 }
 
 export type ComponentState = LoadingState | LoadedState | RefreshingState | ErrorState;
@@ -320,15 +376,11 @@ interface State<T> {
   state: T;
 }
 
-export interface LoadedState extends State<"loaded"> {
-  data: ToDo[];
+export interface LoadedState extends State<"LOADED"> {
+  toDos: ToDo[];
 }
 ```
 
 </Note>
 
 Now we can refactor the previous function and use simple checking of `state` property.
-
-## Summary
-
-We have moved from many variables and end with named states. Now it is time to compare how code is written when we use those two principle.

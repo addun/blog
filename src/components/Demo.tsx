@@ -2,10 +2,11 @@ interface Props {
   height: number;
   repository: string;
   branch?: string;
+  path?: string;
 }
 
-export function Demo({ height, repository, branch = "master" }: Props) {
-  const demo = `https://${branch}--${repository}-cdgstudio.netlify.app/`;
+export function Demo({ height, repository, branch = "master", path = "" }: Props) {
+  const demo = `https://${branch}--${repository}-cdgstudio.netlify.app/${path}`;
   const github = `https://github.com/cdgstudio/${repository}/tree/${branch}`;
   const stackBlitz = `https://stackblitz.com/~/github/cdgstudio/${repository}/tree/${branch}`;
 

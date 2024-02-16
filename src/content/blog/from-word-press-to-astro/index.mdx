@@ -12,7 +12,7 @@ modified: "2024-02-01"
 
 import { Note } from "@components/Note";
 import { TicTacToe } from "@demos/react/tic-tac-toe";
-import { ExampleComponent } from "@demos/angular/example";
+import { ExampleComponent } from "@demos/angular/example/index.ts";
 
 ## Introduction
 
@@ -91,7 +91,8 @@ import { ExampleComponent } from "./angular.component";
 <ExampleComponent client:visible />;
 ```
 
-<ExampleComponent client:visible />
+{/* todo: uncomment when built will succeed */}
+{/* <ExampleComponent client:visible /> */}
 
 After rewriting some components and articles to _Astro_ and _MDX_ I loved it.
 No more taking care about caching, no more taking care about optimization.
@@ -130,14 +131,14 @@ https://codegen.studio/blog/xRWLGo/...
 
 To concat old ID with the new old I have added two fields: `oldID` and `ID` for each article.
 
-```mdx
+```md
 ---
 id: xRWLGo
 oldId: 909
-{/* ... */}
+<!-- ...  -->
 ---
 
-{/* Content */}
+<!-- Content -->
 ```
 
 #### Redirector
