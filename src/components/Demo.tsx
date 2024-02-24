@@ -3,11 +3,12 @@ interface Props {
   repository: string;
   branch?: string;
   path?: string;
+  directoryPath?: string;
 }
 
-export function Demo({ height, repository, branch = "master", path = "" }: Props) {
+export function Demo({ height, repository, branch = "master", path = "", directoryPath = "" }: Props) {
   const demo = `https://${branch}--${repository}-cdgstudio.netlify.app/${path}`;
-  const github = `https://github.com/cdgstudio/${repository}/tree/${branch}`;
+  const github = `https://github.com/cdgstudio/${repository}/tree/${branch}/${directoryPath}`;
   const stackBlitz = `https://stackblitz.com/~/github/cdgstudio/${repository}/tree/${branch}`;
 
   return (

@@ -32,7 +32,13 @@ something is happening (instead of displaying a blank page).
 To do this we can create a variable `loading` and write in our
 template logic to display one of two views: _loading view_ or _data view_.
 
-<Demo height={400} repository={frontmatter.repository} path="loading-state" branch="main" />
+<Demo
+  height={400}
+  repository={frontmatter.repository}
+  path="loading-state"
+  branch="main"
+  directoryPath="/src/app/demos/loading-state"
+/>
 
 ```ts
 export class ExampleComponent {
@@ -72,7 +78,13 @@ But this does not cover all needs.
 We also want to store data about the error and also items to display.
 This makes our component bigger and less readable.
 
-<Demo height={450} repository={frontmatter.repository} path="more-states" branch="main" />
+<Demo
+  height={450}
+  repository={frontmatter.repository}
+  path="more-states"
+  branch="main"
+  directoryPath="/src/app/demos/more-states"
+/>
 
 ```ts
 export class DataToDisplay {
@@ -134,11 +146,11 @@ object and storing all data needed to display the view in a single object.
 
 ```ts
 export interface ComponentState {
-  loading: boolean;
-  refreshing: boolean;
-  toDos: Item[];
-  error: boolean;
-  errorData: Error | null;
+  readonly loading: boolean;
+  readonly refreshing: boolean;
+  readonly toDos: Item[];
+  readonly error: boolean;
+  readonly errorData: Error | null;
 }
 
 const INITIAL_STATE: ComponentState = {
@@ -149,6 +161,12 @@ const INITIAL_STATE: ComponentState = {
   errorData: null,
 } as const;
 ```
+
+<Note type='IMPORTANT'>
+
+`readonly` is necessary to block possibility to mutate a state.
+
+</Note>
 
 Now we can come back to our component
 and replace all properties with single-state objects.
@@ -165,46 +183,48 @@ export class DataToDisplay {
   }
 
   refresh() {
-    this.state.refreshing = true;
+    this.state = {
+      loading: false,
+      refreshing: true,
+      error: false,
+      errorData: null,
+      toDos: this.state.toDos,
+    };
     this.loadToDos();
   }
 
   private loadToDos() {
     this.toDos$.subscribe({
       next: (toDos) => {
-        this.state.loading = false;
-        this.state.refreshing = false;
-        this.state.error = false;
-        this.state.toDos = toDos;
+        this.state = {
+          loading: false,
+          refreshing: false,
+          error: false,
+          errorData: null,
+          toDos: toDos,
+        };
       },
       error: (error) => {
-        this.state.error = true;
-        this.state.loading = false;
-        this.state.refreshing = false;
-        this.state.errorData = error;
+        this.state = {
+          loading: false,
+          refreshing: false,
+          error: true,
+          errorData: error,
+          toDos: [],
+        };
       },
     });
   }
 }
 ```
 
-<Note type='IMPORTANT'>
-
-In this example we mutate a state object to change a property
-but if we need we can make our object read-only to
-force a developer to create a new state each time we want to change something.
-
-```ts
-export interface ComponentState {
-  readonly loading: boolean;
-  readonly refreshing: boolean;
-  // ...
-}
-```
-
-</Note>
-
-<Demo height={450} repository={frontmatter.repository} path="state-object" branch="main" />
+<Demo
+  height={450}
+  repository={frontmatter.repository}
+  path="state-object"
+  branch="main"
+  directoryPath="/src/app/demos/state-object"
+/>
 
 ## Problem with types
 
@@ -215,7 +235,6 @@ When an error occurs we want to get the `errorData` property.
 export function errorCountEffect(state: ComponentState): void {
   if (state.error === true) {
     const type = state.errorData?.message; // I had to add `?` because `errorData` can be null
-
     // ...
   }
 }
@@ -313,7 +332,7 @@ export type ComponentState = LoadingState | LoadedState | RefreshingState | Erro
 
 ## Checking current state
 
-Lets go back to our effect where we want to check current state.
+Let us go back to our effect where we want to check current state.
 To do this we have to check which properties are defined and which are not.
 
 ```ts
@@ -327,7 +346,7 @@ export function errorCountEffect(state: ComponentState): void {
 
 <Note type='CRITICAL'>
 
-This statement is not readable and each time we have to know what to check.
+This `if` statement is not readable and each time we have to know what to check.
 
 </Note>
 
@@ -346,21 +365,21 @@ To make easier checking current state we can create a special property which wil
 
 ```ts
 export interface LoadingState {
-  state: "LOADING";
+  name: "LOADING";
 }
 
 export interface LoadedState {
-  state: "LOADED";
+  name: "LOADED";
   toDos: ToDo[];
 }
 
 export interface RefreshingState {
-  state: "REFRESHING";
+  name: "REFRESHING";
   toDos: ToDo[];
 }
 
 export interface ErrorState {
-  state: "ERROR";
+  name: "ERROR";
   error: Error;
 }
 
@@ -373,7 +392,7 @@ We can create a interface to share base properties. This is nice to have but not
 
 ```ts
 interface State<T> {
-  state: T;
+  name: T;
 }
 
 export interface LoadedState extends State<"LOADED"> {
@@ -383,4 +402,124 @@ export interface LoadedState extends State<"LOADED"> {
 
 </Note>
 
-Now we can refactor the previous function and use simple checking of `state` property.
+Now we can refactor the previous function and use simple checking of `name` property
+([TS Playground](https://www.typescriptlang.org/play?#code/JYOwLgpgTgZghgYwgAgCoHsAi7kG9kC+AUERAB4AO6UYyoksiKAMunACagDmAymHJDxFkyEHAC2EAFzIARMwDyAQUwBJAHIBxWQG4ixUpWq160eEmSsOEdnwEpcw0ROlzFKgKKZdTsFnQAzjIY2ADaALp6BuRUNHTgZkzIAEoQMFAQAQAW3HaCjiJikjKyyR4AYmU8ABIa2noifthBaP4RUSQxxvEM5igeUFDUeQ5ORa6yHsnJCsk+ItBDUDIDSx2GsbRgAJ4UKADC6OJUIBDgI8gAvJZsnCC8-IIAPjfWto8oL6npmTn3Fy9VsMPnpOkY4jAAK4gBBgYDoEDIRbUQ7QsAeGAwCCwgAUAQ+MkOxwRZzAIwAlDIAG7oYDsIQiEROET4+wNRkAeg5yAAegB+EiMugwZB4j4AOnGV0u1wA5FMZslZeShMyhchWZB2erkFzeQK1UKEAj8cgdnsrhqJcioOLJAEAnAuBBteq9eKPWriAQgA)).
+
+```ts
+export function errorCountEffect(state: ComponentState): void {
+  if (state.name === "ERROR") {
+    const message = state.errorData.message;
+    // ...
+  }
+}
+```
+
+## Comparing writing templates
+
+Let us come back to our templates from the beginning.
+When we had individual properties for each state our template
+looks like below.
+
+```jsx
+if (loading) {
+  <p>Spinner</p>;
+} else if (error) {
+  <p>Something bad happened</p>;
+} else {
+  <table>...</table>;
+  if (refreshing) {
+    <p>Inner spinner</p>;
+  }
+}
+```
+
+But when we migrated to the _named states_ the template has to change.
+We cannot look now for individual properties.
+We have to now write a template where we will check a current state and
+for each state we need to have a template.
+
+```jsx
+switch (state.name) {
+  case "LOADING":
+    <p>Spinner</p>;
+    break;
+  case "LOADED":
+    <table> ... </table>;
+    break;
+  case "REFRESHING":
+    <table> ... </table>;
+    <p>Inner spinner</p>;
+    break;
+  default:
+    <p>Unknown state</p>;
+    break;
+}
+```
+
+<Note type='HELPFUL'>
+
+We can also handle many states at single case.
+It approach will be helpful where two states have a very similar look.
+
+```jsx
+switch (state.name) {
+  case "LOADING":
+    <p>Spinner</p>;
+    break;
+  case "LOADED":
+  case "REFRESHING":
+    <table> ... </table>;
+    if (state.state === "REFRESHING") {
+      <p>Inner spinner</p>;
+    }
+    break;
+  default:
+    <p>Unknown state</p>;
+    break;
+}
+```
+
+</Note>
+
+Now when we look into application - on UI nothing has changed but under the hood had changed everything.
+
+<Demo
+  height={400}
+  repository={frontmatter.repository}
+  path="named-states"
+  branch="main"
+  directoryPath="/src/app/demos/named-states"
+/>
+
+## Real-world example
+
+All examples so far were quite simple.
+Lets now create a application where user can see data, filters those data,
+sort it and navigate through pages.
+
+{/* add demo with all those features */}
+
+### Extending loaded state
+
+As the first step we need to add more information about
+loaded state, like page number, active filters etc.
+
+<Note type='HELPFUL'>
+
+We want to paginate/filtering/sorting on a server.
+We will not implement it in a browser.
+
+</Note>
+
+```ts
+interface LoadedState {
+  name: "LOADED";
+  toDos: ToDo[];
+
+  filters: unknown;
+  sorts: unknown;
+
+  pageNumber: number;
+  pageSize: number;
+}
+```
