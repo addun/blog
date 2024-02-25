@@ -14,6 +14,7 @@ if (asNumber !== 0) {
 
   if (perhapsEntry !== undefined) {
     const path = getBlogPostPath(perhapsEntry);
+
     return Astro.redirect(path, 301);
   }
 }
