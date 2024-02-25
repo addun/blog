@@ -6,11 +6,15 @@ const { id } = Astro.params;
 const blogs = await getCollection("blog");
 const perhapsEntry = blogs.find((entry) => entry.data.id === id);
 
-if (perhapsEntry !== undefined) {
-  const path = getBlogPostPath(perhapsEntry);
+if (perhapsEntry === undefined) {
+  console.log(`Entry not found`, id);
 
-  return Astro.redirect(path, 301);
+  return Astro.redirect("/", 301);
 }
 
-return Astro.redirect("/", 301);
+const path = getBlogPostPath(perhapsEntry);
+
+console.log(`Redirecting to blog post: `, path);
+
+return Astro.redirect(path, 301);
 ---
