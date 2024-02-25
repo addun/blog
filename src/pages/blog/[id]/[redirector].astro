@@ -10,6 +10,7 @@ const perhapsEntry = blogs.find((entry) => entry.data.id === id);
 
 if (perhapsEntry !== undefined) {
   const path = getBlogPostPath(perhapsEntry);
+  console.log(path);
 
   return Astro.redirect(path, 301);
 }
