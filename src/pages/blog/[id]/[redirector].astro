@@ -1,20 +1,20 @@
 ---
 import { getCollection } from "astro:content";
 import { getBlogPostPath } from "@utils/blog-id";
+import NotFound from "@components/NotFound.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 
 const { id } = Astro.params;
 const blogs = await getCollection("blog");
 const perhapsEntry = blogs.find((entry) => entry.data.id === id);
 
-if (perhapsEntry === undefined) {
-  console.log(`Entry not found`, id);
+if (perhapsEntry !== undefined) {
+  const path = getBlogPostPath(perhapsEntry);
 
-  return Astro.redirect("/", 301);
+  return Astro.redirect(path, 301);
 }
-
-const path = getBlogPostPath(perhapsEntry);
-
-console.log(`Redirecting to blog post: `, path);
-
-return Astro.redirect(path, 301);
 ---
+
+<BaseLayout>
+  <NotFound />
+</BaseLayout>
