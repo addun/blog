@@ -1,8 +1,6 @@
 ---
 import { getCollection } from "astro:content";
 import { getBlogPostPath } from "@utils/blog-id";
-import NotFound from "@components/NotFound.astro";
-import BaseLayout from "@layouts/BaseLayout.astro";
 
 const { id } = Astro.params;
 const blogs = await getCollection("blog");
@@ -13,8 +11,6 @@ if (perhapsEntry !== undefined) {
 
   return Astro.redirect(path, 301);
 }
----
 
-<BaseLayout>
-  <NotFound />
-</BaseLayout>
+return Astro.redirect("/", 301);
+---
