@@ -16,7 +16,7 @@ tags:
   - typescript
 thumbnail: "./thumbnail.png"
 date: "2023-12-05"
-modified: "2024-01-07"
+modified: "2024-02-25"
 repository: "state-management"
 ---
 
@@ -481,7 +481,53 @@ switch (state.name) {
 
 </Note>
 
-Now when we look into application - on UI nothing has changed but under the hood had changed everything.
+## Comparing changing state
+
+When we take a loot into the code from the beginning we can see
+that we had to "reset" each property one by one.
+It it very easy to make a mistake and forget to
+change a variable to original value.
+
+```ts
+let loading = true;
+let refreshing = false;
+let error = false;
+let toDos: ToDo[] = [];
+let errorData: Error | null = null;
+
+this.toDos$.subscribe({
+  next: (toDos) => {
+    this.loading = false;
+    this.refreshing = false;
+    this.error = false;
+    this.toDos = toDos;
+  },
+  error: (error) => {
+    this.error = true;
+    this.loading = false;
+    this.refreshing = false;
+    this.errorData = error;
+  },
+});
+```
+
+In situation where we will use _named states_ the code is
+much more shorter and most important more readable.
+
+```ts
+let state: ComponentState = { name: "LOADING" };
+
+this.toDos$.subscribe({
+  next: (toDos) => {
+    state = { name: "LOADED", data: toDos };
+  },
+  error: (error) => {
+    state = { name: "ERROR", error: error };
+  },
+});
+```
+
+## Final version
 
 <Demo
   height={400}
@@ -490,36 +536,3 @@ Now when we look into application - on UI nothing has changed but under the hood
   branch="main"
   directoryPath="/src/app/demos/named-states"
 />
-
-## Real-world example
-
-All examples so far were quite simple.
-Lets now create a application where user can see data, filters those data,
-sort it and navigate through pages.
-
-{/* add demo with all those features */}
-
-### Extending loaded state
-
-As the first step we need to add more information about
-loaded state, like page number, active filters etc.
-
-<Note type='HELPFUL'>
-
-We want to paginate/filtering/sorting on a server.
-We will not implement it in a browser.
-
-</Note>
-
-```ts
-interface LoadedState {
-  name: "LOADED";
-  toDos: ToDo[];
-
-  filters: unknown;
-  sorts: unknown;
-
-  pageNumber: number;
-  pageSize: number;
-}
-```
