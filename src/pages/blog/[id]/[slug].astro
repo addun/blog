@@ -4,6 +4,7 @@ export const prerender = true;
 import { getCollection } from "astro:content";
 import PostIntro from "@components/PostIntro.astro";
 import Donation from "@components/Donation.astro";
+import Comments from "@components/Comments.astro";
 import { GitHubLink } from "@components/GitHubLink";
 import BaseLayout from "@layouts/BaseLayout.astro";
 
@@ -20,7 +21,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { description, thumbnail, title, repository, date, modified } = Astro.props.entry.data;
+const { description, thumbnail, title, repository, date, modified, id } = Astro.props.entry.data;
 const { Content } = await entry.render();
 ---
 
@@ -55,5 +56,6 @@ const { Content } = await entry.render();
     </article>
 
     <Donation />
+    <Comments term={id} />
   </main>
 </BaseLayout>
