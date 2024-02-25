@@ -10,9 +10,15 @@ const perhapsEntry = blogs.find((entry) => entry.data.id === id);
 
 if (perhapsEntry !== undefined) {
   const path = getBlogPostPath(perhapsEntry);
+  console.log(`Post has been found. Redirect to ${path}`);
 
   return Astro.redirect(path, 301);
 }
+
+Astro.response.status = 404;
+Astro.response.statusText = "Not found";
+
+console.log(`404 status from [redirector] for ${id}`);
 ---
 
 <BaseLayout>

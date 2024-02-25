@@ -18,6 +18,11 @@ if (asNumber !== 0) {
     return Astro.redirect(path, 301);
   }
 }
+
+Astro.response.status = 404;
+Astro.response.statusText = "Not found";
+
+console.log("404 status from [...path]");
 ---
 
 <BaseLayout>
