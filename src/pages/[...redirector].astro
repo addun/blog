@@ -5,10 +5,11 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import NotFound from "@components/NotFound.astro";
 
 const url = Astro.url;
+
 const firstPathName = url.pathname.split("/")[1];
 const asNumber = +firstPathName;
 
-if (asNumber !== 0) {
+if (asNumber !== 0 && !isNaN(asNumber)) {
   const blogs = await getCollection("blog");
   const perhapsEntry = blogs.find((entry) => entry.data.oldId === asNumber);
 
@@ -19,10 +20,24 @@ if (asNumber !== 0) {
   }
 }
 
+const startsWithBlog = url.pathname.startsWith("/blog/");
+
+if (startsWithBlog) {
+  const id = url.pathname.split("/")[2];
+
+  const blogs = await getCollection("blog");
+  // by default URL is lowercase so no need to lowercase `id` from URL
+  const perhapsEntry = blogs.find((entry) => entry.data.id.toLowerCase() === id);
+
+  if (perhapsEntry !== undefined) {
+    const path = getBlogPostPath(perhapsEntry);
+
+    return Astro.redirect(path, 301);
+  }
+}
+
 Astro.response.status = 404;
 Astro.response.statusText = "Not found";
-
-console.log("404 status from [...path]");
 ---
 
 <BaseLayout>
