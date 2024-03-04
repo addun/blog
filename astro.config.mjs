@@ -6,10 +6,12 @@ import netlify from "@astrojs/netlify";
 import sitemap from "@astrojs/sitemap";
 import metaTags from "astro-meta-tags";
 import partytown from "@astrojs/partytown";
+import partytown from "@astrojs/partytown";
+import angular from "@analogjs/astro-angular";
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [mdx({ syntaxHighlight: "prism" }), tailwind(), react(), sitemap(), metaTags(), partytown()],
+  integrations: [mdx({ syntaxHighlight: "prism" }), tailwind(), react(), sitemap(), metaTags(), partytown(), angular()],
   output: "server",
   site: "https://codegen.studio",
   adapter: netlify(),

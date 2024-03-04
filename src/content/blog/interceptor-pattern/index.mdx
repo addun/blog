@@ -1,6 +1,6 @@
 ---
-date: "2024-02-05"
-modified: "2024-02-05"
+date: "2024-03-05"
+modified: "2024-03-05"
 id: h27CUi
 title: Handle async actions with interception pattern
 description: |
@@ -24,5 +24,7 @@ Even for this simple task there is a lot of cases to handle:
 - block sending a next request until the previous one is not ended
 
 import ExampleForm from "./example-form.tsx";
+import { ExampleComponent } from "./example.component";
 
 <ExampleForm client:visible />
+<ExampleComponent client:visible />
