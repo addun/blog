@@ -61,7 +61,7 @@ import { AbstractControl, Validators } from "@angular/forms";
 @Component({
   selector: "app-label",
   template: `
-  <label>
+  <label [for]="for">
     <ng-content></ng-content>
     {{ required ? "*" : "" }}
   </label>`,
