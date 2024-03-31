@@ -60,8 +60,9 @@ import { AbstractControl, Validators } from "@angular/forms";
 
 @Component({
   selector: "app-label",
-  template: `<label>
-    <ng-container *ngIf="required">*</ng-container>
+  template: `
+  <label>
+    <ng-content></ng-content>
     {{ required ? "*" : "" }}
   </label>`,
   styles: [
