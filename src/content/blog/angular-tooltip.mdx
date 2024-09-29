@@ -1,6 +1,6 @@
 ---
 date: "2022-04-24T11:22:40"
-modified: "2024-01-07T20:48:33"
+modified: "2024-09-29T20:48:33"
 id: xRWLGo
 oldId: 909
 title: How to create a tooltip with @angular/cdk
@@ -10,7 +10,7 @@ description: |
 tags:
   - angular-cdk
   - angular
-  - angular-16
+  - angular-18
 thumbnail: "../images/angular-cdk.png"
 repository: tooltip
 ---
@@ -66,17 +66,16 @@ The directive is responsible for creating a component above (or below if above i
 ```ts
 @Directive({
   selector: "[appTooltip]",
+  standalone: true,
 })
 export class TooltipDirective implements OnDestroy {
-  @Input() appTooltip!: string | TemplateRef<void>;
+  private element = inject<ElementRef<HTMLElement>>(ElementRef);
+  private overlay = inject(Overlay);
+  private viewContainer = inject(ViewContainerRef);
+
+  @Input() appTooltip!: TooltipData;
 
   private overlayRef: OverlayRef | null = null;
-
-  constructor(
-    private element: ElementRef<HTMLElement>,
-    private overlay: Overlay,
-    private viewContainer: ViewContainerRef,
-  ) {}
 
   @HostListener("mouseenter")
   @HostListener("focus")
@@ -165,26 +164,26 @@ Look at `getPositionStrategy` function
   templateUrl: "./tooltip-container.component.html",
   styleUrls: ["./tooltip-container.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [NgTemplateOutlet],
 })
 export class TooltipContainerComponent {
-  get asString(): string | false {
+  tooltipData = inject<TooltipData>(TOOLTIP_DATA);
+
+  get isString(): string | false {
     return typeof this.tooltipData === "string" ? this.tooltipData : false;
   }
 
-  get asTemplate(): TemplateRef<void> | false {
+  get isTemplate(): TemplateRef<void> | false {
     return this.tooltipData instanceof TemplateRef ? this.tooltipData : false;
   }
-
-  constructor(@Inject(TOOLTIP_DATA) public tooltipData: TooltipData) {}
 }
 ```
 
 ```html
-<ng-container *ngIf="asString as string"> {{ string }} </ng-container>
-
-<ng-container *ngIf="asTemplate as template">
-  <ng-template [ngTemplateOutlet]="template"></ng-template>
-</ng-container>
+@if (isString; as string) { {{ string }} } @if (isTemplate; as template) {
+<ng-template [ngTemplateOutlet]="template" />
+}
 ```
 
 <Note type='IMPORTANT'>
@@ -235,6 +234,7 @@ Info about the current position of the tooltip I took from CSS classes like top 
 ```ts
 @Directive({
   selector: "[appTooltip]",
+  standalone: true,
 })
 export class TooltipDirective implements OnDestroy {
   // ...

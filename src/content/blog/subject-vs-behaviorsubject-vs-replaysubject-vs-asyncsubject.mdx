@@ -75,7 +75,7 @@ export class ModalComponent implements OnDestroy {
 and storing the last emitted value. `BehaviorSubject` require to define the initial value.
 `BehaviorSubject` is useful if you know the initial state otherwise you should try to use `ReplaySubject`.
 
-When a new subscriber arrives `BehaviorSubject` emit stored value to him (look at `\_subscribe` method).
+When a new subscriber arrives `BehaviorSubject` emit stored value to him (look at `_subscribe` method).
 
 ```ts
 export class BehaviorSubject<T> extends Subject<T> {
@@ -334,12 +334,13 @@ If you subscribe after the calling `complete` method you will also receive the l
 ```ts
 const asyncSubject$$ = new AsyncSubject<number>();
 
+// you will receive only the last value after complete
+asyncSubject$$.subscribe((e) => console.log(e)); // -> 3
+
 asyncSubject$$.next(1);
 asyncSubject$$.next(2);
 asyncSubject$$.next(3);
 asyncSubject$$.complete();
-
-asyncSubject$$.subscribe((e) => console.log(e)); // -> 3
 ```
 
 </Note>

@@ -65,23 +65,46 @@ const asString = JSON.stringify(dataEntries);
   const entries = JSON.parse(searchInput.dataset["entries"]!) as { title: string; description: string; id: string }[];
 
   const fuse = new Fuse(entries, {
-    keys: ["title", "description"],
+    includeScore: true,
+    keys: [
+      { name: "title", weight: 2 },
+      { name: "description", weight: 1 },
+    ],
   });
 
   const articles = Array.from(document.getElementsByTagName("article"));
 
-  searchInput.addEventListener("keyup", (event) => {
+  searchInput.addEventListener("keyup", debounce(handleSearchKeyUp, 100));
+
+  function handleSearchKeyUp(event: KeyboardEvent) {
     event.preventDefault();
     const search = searchInput.value || "";
 
     if (!search) {
-      return articles.forEach((art) => (art.style.display = ""));
+      return articles.forEach((article) => {
+        article.style.display = "";
+        article.style.order = "";
+      });
     }
 
-    const founded = fuse.search(search);
     articles.forEach((art) => (art.style.display = "none"));
-    founded.forEach((el) => {
-      articles.filter((art) => art.id === el.item.id).forEach((article) => (article.style.display = ""));
+
+    fuse.search(search).forEach((el, index) => {
+      const article = articles.find((art) => art.id === el.item.id)!;
+
+      article.style.display = "";
+      article.style.order = index.toString();
     });
-  });
+  }
+
+  function debounce(func: (...args: any[]) => unknown, delay: number): (...args: any[]) => unknown {
+    let timeoutId: any;
+
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  }
 </script>
