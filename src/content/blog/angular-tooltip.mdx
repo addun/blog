@@ -170,19 +170,23 @@ Look at `getPositionStrategy` function
 export class TooltipContainerComponent {
   tooltipData = inject<TooltipData>(TOOLTIP_DATA);
 
-  get isString(): string | false {
-    return typeof this.tooltipData === "string" ? this.tooltipData : false;
+  isString(value: TooltipData): value is string {
+    return typeof value === "string";
   }
 
-  get isTemplate(): TemplateRef<void> | false {
-    return this.tooltipData instanceof TemplateRef ? this.tooltipData : false;
+  isTemplate(value: TooltipData): value is TemplateRef<void> {
+    return this.tooltipData instanceof TemplateRef;
   }
 }
 ```
 
 ```html
-@if (isString; as string) { {{ string }} } @if (isTemplate; as template) {
-<ng-template [ngTemplateOutlet]="template" />
+@let data = tooltipData;
+
+@if (isString(data)) {
+  {{ data }}
+} @else {
+  <ng-template [ngTemplateOutlet]="data"/>
 }
 ```
 
