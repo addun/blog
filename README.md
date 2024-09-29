@@ -13,6 +13,20 @@ $ npm install
 $ npm run dev
 ```
 
+## Settings
+
+Gradient for background
+
+```css
+.thumbnail {
+  background: radial-gradient(circle, #004aa5 0%, #0071a5 100%);
+  width: 1080px;
+  height: 600px;
+}
+```
+
+You can generate gradient on the page https://cssgradient.io/.
+
 ## Technologies
 
 - [Astro](https://astro.build/)
