@@ -1,13 +1,11 @@
 ---
 import { Image } from "astro:assets";
 import Logo from "@components/icons/Logo.svg";
-
-const site = Astro.site?.toString();
 ---
 
 <nav class="bg-white border-gray-200 dark:bg-gray-900 mb-10">
   <div class="flex flex-wrap items-center justify-between mx-2 md:mx-4 mt-4">
-    <a href={site} class="flex items-center space-x-3 rtl:space-x-reverse">
+    <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
       <Image src={Logo} alt="CodeGen Logo" class="h-8" width={32} />
       <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">CodeGen</span>
     </a>
