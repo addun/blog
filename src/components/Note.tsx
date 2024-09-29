@@ -20,7 +20,7 @@ export function Note({ children, type, className, as: Component = "div" }: Props
   }[type];
 
   return (
-    <Component className={`px-4 py-1 my-6 rounded border-solid  border-l-8 ${extra} ${className}`}>
+    <Component className={`px-4 py-1 my-10 rounded border-solid  border-l-8 ${extra} ${className}`}>
       {children}
     </Component>
   );

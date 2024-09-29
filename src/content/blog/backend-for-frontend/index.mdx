@@ -6,7 +6,7 @@ description: |
   where you can optimize the API for the specific needs of the frontend.
 tags:
   - angular
-thumbnail: "./thumbnail.svg"
+thumbnail: "./thumbnail.webp"
 date: "2024-09-28"
 modified: "2024-09-28"
 ---
@@ -150,3 +150,11 @@ Not really. Having a mono-repo with the FE and BFF can simplify the development 
 When you need to make changes in the FE and BFF at the same time you can do it in a single pull request
 (it is especially useful when you need to break a contract between the FE and BFF).
 It is also easier to keep the versions of the FE and BFF in sync.
+
+### About about GraphQL?
+
+GraphQL is a great **alternative** to BFF.
+In most
+With GraphQL you can create a single endpoint that can be used by multiple clients.
+The client can request only the data it needs and in the format it expects.
+The downside of GraphQL is that it requires more effort to set up and maintain.
