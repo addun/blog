@@ -41,11 +41,11 @@ The first step is to add a library. Write the command below to add @angular/cdk 
 ng add @angular/cdk
 ```
 
+The second step is to add overlay styles to the global stylesheet file (styles.scss).
+
 ```scss
 @import "~@angular/cdk/overlay-prebuilt.css";
 ```
-
-The second step is to add overlay styles to the global stylesheet file (styles.scss).
 
 <Note type="IMPORTANT">
 
@@ -63,7 +63,7 @@ From `@angular/cdk@15` `OverlayModule` is not required to import anymore because
 
 The directive is responsible for creating a component above (or below if above is no place) an element. As you can see, a tooltip is created on focus or moveenter events. After blur or moveleave the tooltip is destroyed.
 
-```ts
+```ts title="tooltip.directive.ts"
 @Directive({
   selector: "[appTooltip]",
   standalone: true,
@@ -158,7 +158,9 @@ Look at `getPositionStrategy` function
 
 ## Tooltip container component
 
-```ts
+{/* todo: use tabs */}
+
+```ts title="tooltip-container.component.ts"
 @Component({
   selector: "app-tooltip-container",
   templateUrl: "./tooltip-container.component.html",
@@ -180,13 +182,14 @@ export class TooltipContainerComponent {
 }
 ```
 
-```html
+{/* prettier-ignore */}
+```html title="tooltip-container.component.html"
 @let data = tooltipData;
 
 @if (isString(data)) {
-  {{ data }}
+  {{ data }} 
 } @else {
-  <ng-template [ngTemplateOutlet]="data"/>
+  <ng-template [ngTemplateOutlet]="data" />
 }
 ```
 
@@ -198,7 +201,7 @@ Take a look at asString and asTemplate getters. In HTML is not possible to cast 
 
 ### Adding styles for tooltip
 
-```scss
+```scss title="tooltip-container.component.scss"
 :host {
   display: block;
   max-width: 12rem;
@@ -235,7 +238,7 @@ Info about the current position of the tooltip I took from CSS classes like top 
 
 ### How to implement a fallback position strategy
 
-```ts
+```ts title="tooltip.directive.ts"
 @Directive({
   selector: "[appTooltip]",
   standalone: true,

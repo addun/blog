@@ -43,7 +43,7 @@ or join data from multiple sources to reduce the number of requests from the fro
 Let's say you want to add to a frontend application a list that displays cron jobs.
 The backend API is already created and returns a list of cron jobs with the following properties:
 
-```json
+```json title="GET /crons"
 [
   {
     "id": 1,
@@ -73,7 +73,7 @@ This will increase the bundle size and the complexity of the frontend applicatio
 - [cron-parser](https://bundlephobia.com/package/cron-parser@4.9.0) - 26.3kB (Minified + Gzipped)
 - [cronstrue](https://bundlephobia.com/package/cronstrue@2.50.0) - 5.6kB (Minified + Gzipped)
 
-```javascript
+```javascript title="frontend.js"
 import cronParser from "cron-parser";
 import cronstrue from "cronstrue";
 
@@ -97,7 +97,7 @@ without increasing the bundle size and the complexity of the frontend applicatio
 
 ![A flow between FE, BFF and Cron API](./fe-bff-cron-api.svg)
 
-```js
+```js title="express.js"
 import express from "express";
 import cronParser from "cron-parser";
 import cronstrue from "cronstrue";
@@ -153,8 +153,5 @@ It is also easier to keep the versions of the FE and BFF in sync.
 
 ### About about GraphQL?
 
-GraphQL is a great **alternative** to BFF.
-In most
-With GraphQL you can create a single endpoint that can be used by multiple clients.
-The client can request only the data it needs and in the format it expects.
-The downside of GraphQL is that it requires more effort to set up and maintain.
+GraphQL is a **alternative** to BFF.
+When you use GraphQL then you should not need a BFF.

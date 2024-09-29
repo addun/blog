@@ -11,7 +11,8 @@
       "@utils/*": ["src/utils/*"],
       "@layouts/*": ["src/layouts/*"],
       "@demos/angular/*": ["src/demos/angular/*"],
-      "@demos/react/*": ["src/demos/react/*"]
+      "@demos/react/*": ["src/demos/react/*"],
+      "@integrations/*": ["integrations/*"]
     }
   }
 }

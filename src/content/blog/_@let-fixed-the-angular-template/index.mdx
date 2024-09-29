@@ -1,0 +1,29 @@
+---
+date: "2024-02-05"
+modified: "2024-02-05"
+id: CHpSXn
+title: \@let new syntax fanally fixed the type checking
+description: |
+  When you click `save` button it is nice to have a nice loading screen.
+  See how you can do this in generic way thanks to interception pattern.
+tags:
+  - angular
+  - angular-17
+thumbnail: "../../images/angular.png"
+repository:
+---
+
+## Intro
+
+You have a button on a website.
+When a user click this button you want to send a HTTP request to the server.
+Even for this simple task there is a lot of cases to handle:
+
+- show loading component when request is in progress
+- handle HTTP error response
+- block sending a next request until the previous one is not ended
+
+```js title="example-form.tsx"
+console.log("Greetings from line 2!");
+console.log("I am on line 3");
+```
