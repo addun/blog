@@ -1,0 +1,108 @@
+---
+date: "2024-10-01"
+modified: "2024-10-01"
+id: CHpSXn
+title: Better type checking thanks to @let block
+description: |
+  There are cases where checking the type of a variable in a template is necessary.
+  The `@let` block from Angular 18 allows you to define a variable in a template and reuse it in many places.
+  Thanks to that Type Narrowing finally works in Angular templates.
+tags:
+  - angular
+  - angular-18
+thumbnail: "./thumbnail.webp"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Intro
+
+`@let` block that allows you to define a variable in a template and reuse it in many places.
+
+{/* prettier-ignore */}
+```html title="app.component.html"
+@let tasks = tasks$ | async; 
+
+@if(tasks === null) {
+  <p>Loading...</p>
+} @else if(tasks.length > 0) {
+  <ul>
+    @for(let task of tasks) {
+      <li>{{ task.name }}</li>
+    }
+  </ul>
+} @else {
+  <p>No tasks</p>
+}
+```
+
+## `@let` and Type Narrowing
+
+The `@let` block can be used to narrow the type of a variable in a template.
+It is especially useful when you have a signals based application.
+
+{/* prettier-ignore */}
+```typescript title="app.component.ts"
+type ComponentState =
+  | { status: "LOADING" }
+  | { status: "LOADED"; data: string[] }
+  | { status: "ERROR"; error: string };
+  
+@Component({ ... })
+export class AppComponent {
+  const state = signal({ name: "PRISTINE" });
+}
+```
+
+{/* prettier-ignore */}
+```html title="app.component.html"
+@let state = state();
+
+@if(state.status === "LOADING") {
+  <p>Loading...</p>
+} @else if(state.status === "LOADED") {
+  <ul>
+    <!-- state has type `{ status: "LOADED"; data: string[] }` -->
+    @for(let task of state.data) {
+      <li>{{ task }}</li>
+    }
+  </ul>
+} @else {
+  <!-- state has type `{ status: "ERROR"; error: string }` -->
+  <p>{{ state.error }}</p>
+}
+```
+
+<Note type="IMPORTANT">
+
+To do the same with `*ngIf`, you would have to repeat the type check in each `*ngIf` block
+
+```ts
+@Component({ ... })
+export class AppComponent {
+  state = signal({ name: "LOADING" });
+
+  isLoaded(state: ComponentState): { status: "LOADED"; data: string[] } | false {
+    return state.status === "LOADED" ? state : false;
+  }
+}
+```
+
+{/* prettier-ignore */}
+```html
+<ng-container *ngIf="isLoaded(state()); as loadedState">
+  <ul>
+    <!-- loadedState has type `{ status: "LOADED"; data: string[] }` -->
+    @for(let task of loadedState.data) {
+      <li>{{ task }}</li>
+    }
+  </ul>
+</ng-container>
+```
+
+</Note>
+
+## Source
+
+- [angular.dev](https://angular.dev/guide/templates/variables)
