@@ -11,8 +11,10 @@ date: "2024-09-28"
 modified: "2024-09-28"
 ---
 
+import { Image } from "astro:assets";
 import { Demo } from "@components/Demo";
 import { Note } from "@components/Note";
+import manyServices from "./many-services.png";
 
 ## Introduction
 
@@ -38,7 +40,7 @@ This dedicated backend is called Backend For Frontend (BFF).
 In this backend you can extend the API with new properties, reduce the amount of data
 or join data from multiple sources to reduce the number of requests from the frontend application.
 
-## Example
+## Example with a single service
 
 Let's say you want to add to a frontend application a list that displays cron jobs.
 The backend API is already created and returns a list of cron jobs with the following properties:
@@ -124,6 +126,52 @@ app.get("/crons", async (req, res) => {
 });
 ```
 
+## Example with multiple services
+
+Let's say you want to create a list of products in a frontend application.
+We have many services in the architecture that provide data about products.
+The first service provides data about the stock of the products,
+the second service provides static data about the products and the third service provides translations.
+
+<Image src={manyServices} alt="A flow between FE and multiple services" width={800} />
+
+As you can see to get all the data needed to display a list of products in the frontend application
+you need to make multiple requests to multiple services.
+Of course you can do it in the frontend application but it will increase the number of requests
+and perhaps the frontend application will need to handle the translations and join the data from multiple sources.
+You can resolve those issues by creating a decidated endpoint just for displaying a list of products in BFF service.
+
+```js title="product-list.js"
+import express from "express";
+
+const app = express();
+
+app.get("/products-list", async (req, res) => {
+  const ids = req.query.ids.split(",");
+  const languages = req.query.language;
+
+  const [stockData, staticData, translations] = await Promise.all([
+    fetch(`https://products-api/products?ids=${ids.join(",")}`),
+    fetch(`https://products-static-data-api/products-static-data?ids=${ids.join(",")}&language=${language}`),
+    fetch("https://translations-service/translations"),
+  ]);
+
+  const productsList = stockData.map((product) => {
+    const productStaticData = staticData.find((el) => el.id === product.id);
+
+    return {
+      id: product.id,
+      price: product.price,
+      stock: product.stock > 0 ? translations["In Stock"] : translations["Out of Stock"],
+      title: productStaticData.title,
+      mainImage: productStaticData.images[0],
+    };
+  });
+
+  res.json(productsList);
+});
+```
+
 ## Pros
 
 - Optimize the API for the specific needs of the frontend application.
@@ -155,3 +203,7 @@ It is also easier to keep the versions of the FE and BFF in sync.
 
 GraphQL is a **alternative** to BFF.
 When you use GraphQL then you should not need a BFF.
+
+```
+
+```
