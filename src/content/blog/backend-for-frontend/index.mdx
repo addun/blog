@@ -22,7 +22,7 @@ In a tipical development, the frontend application consumes data from a backend 
 The backend API is designed to be generic and serve multiple clients which can lead to
 a situation where the frontend application needs to make multiple requests to the backend API to get all the data it needs.
 This can lead to performance issues and a poor user experience.
-Aditionaly, the data returned by the backend API may contain more data than the frontend application needs
+Additional, the data returned by the backend API may contain more data than the frontend application needs
 or data that is not in the format that the frontend application expects.
 
 ![A flow with gateway](./with-gateway.svg)
@@ -115,8 +115,41 @@ app.get("/crons", async (req, res) => {
     const nextExecutionTime = interval.next().toString();
     const humanReadableCronExpression = cronstrue.toString(cronJob.cronExpression);
 
+    delete cronJob.cronExpression;
+
     return {
       ...cronJob,
+      nextExecutionTime,
+      humanReadableCronExpression,
+    };
+  });
+
+  res.json(cronJobsWithExtraProperties);
+});
+```
+
+```js title="express.js"
+import express from "express";
+import cronParser from "cron-parser";
+import cronstrue from "cronstrue";
+
+const app = express();
+
+// BFF logic
+app.get("/crons", async (req, res) => {
+  const [cronList, translations] = await Promise.all([
+    fetch("https://cron-api.example.com/crons"),
+    fetch("https://translations-service/translations"),
+  ]);
+
+  const cronJobsWithExtraProperties = cronList.map((cronJob) => {
+    const interval = cronParser.parseExpression(cronJob.cronExpression);
+    const nextExecutionTime = interval.next().toString();
+    const humanReadableCronExpression = cronstrue.toString(cronJob.cronExpression);
+
+    return {
+      ...cronJob,
+      status: translations[cronJob.status],
       nextExecutionTime,
       humanReadableCronExpression,
     };
@@ -148,7 +181,7 @@ const app = express();
 
 app.get("/products-list", async (req, res) => {
   const ids = req.query.ids.split(",");
-  const languages = req.query.language;
+  const language = req.query.language;
 
   const [stockData, staticData, translations] = await Promise.all([
     fetch(`https://products-api/products?ids=${ids.join(",")}`),

@@ -1,0 +1,342 @@
+---
+date: "2024-02-05"
+modified: "2024-11-24"
+id: h27CUi
+title: Handle async actions with interception pattern
+description: |
+  When you click `save` button it is nice to have a nice loading screen.
+  See how you can do this in generic way thanks to interception pattern.
+tags:
+  - angular
+  - angular-17
+thumbnail: "../../images/angular.png"
+repository:
+---
+
+import { Note } from "@components/Note";
+
+## Intro
+
+You have a button on a website.
+When a user click this button you want to send a HTTP request to the server.
+Even for this simple task there is a lot of cases to handle:
+
+- show loading component when request is in progress
+- handle HTTP error response
+- block sending a next request until the previous one is not ended
+
+```ts title="todo.component.ts"
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+  readonly saveInProgress = signal(false);
+
+  save() {
+    if (this.saveInProgress()) {
+      return;
+    }
+
+    this.saveInProgress.set(true);
+
+    this.todoService
+      .save()
+      .pipe(finalize(() => this.saveInProgress.set(false)))
+      .subscribe();
+  }
+}
+```
+
+```html title="todo.component.html"
+<button (click)="save()" [disabled]="saveInProgress()">Save</button>
+```
+
+As you can see there is a lot of boilerplate code.
+You have to repeat this code for every button which calls a asynchronous action.
+
+## Moving logic to directive
+
+We can move this logic to a directive and reuse it in every place where we need it.
+
+```ts title="async-action.directive.ts"
+@Directive({
+  selector: "[appAsyncAction]",
+  standalone: true,
+  host: {
+    "(click)": "handleClick()",
+    "[attr.disabled]": "inProgress()",
+  },
+})
+export class AsyncActionDirective {
+  action = input.required<Observable<unknown>>({ alias: "appAsyncAction" });
+
+  private readonly inProgress = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+
+  handleClick() {
+    if (this.inProgress()) {
+      return;
+    }
+
+    this.inProgress.set(true);
+
+    this.action()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.inProgress.set(false)),
+      )
+      .subscribe();
+  }
+}
+```
+
+<Note type="HELPFUL">
+
+Now the directive calls `subscribe` method and manage the subscription.
+Additionally, it uses `takeUntilDestroyed` operator to automatically unsubscribe when the component is destroyed.
+
+</Note>
+
+Now we can use this directive in our component.
+To do this we need to refactor our component a little bit.
+We can remove `saveInProgress` signal and replace it with `appAsyncAction` directive.
+
+```ts title="todo.component.ts"
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+
+  save() {
+    return this.todoService.save();
+  }
+}
+```
+
+```html title="todo.component.html"
+<button [appAsyncAction]="save()">Save</button>
+```
+
+As you can see we have removed a lot of boilerplate code from our component.
+
+### Problems with `save()` method
+
+There is one problem with this approach.
+We call `save()` method in the template.
+That means that every time the template is rendered the `save()` method is called.
+
+To fix we cannot use `save()` method directly.
+We need to call it and store the result in a variable.
+
+```ts title="todo.component.ts"
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+
+  save$ = this.getSaveAction();
+
+  private getSaveAction() {
+    return this.todoService.save();
+  }
+}
+```
+
+```html title="todo.component.html"
+<button [appAsyncAction]="save$">Save</button>
+```
+
+### Problem with dynamic data
+
+There is another problem with this approach.
+If the data is dynamic we need to call `getSaveAction()` method every time the data changes.
+Right now we call `getSaveAction()` method only once when the component is created.
+That means when we subscribe to `save$` observable it will always send the same data.
+
+```ts title="todo.component.ts"
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+  readonly form = new FormGroup({
+    title: new FormControl(""),
+    completed: new FormControl(false),
+  });
+
+  save$ = this.getSaveAction();
+
+  private getSaveAction() {
+    const formData = this.form.value;
+
+    return this.todoService.save();
+  }
+}
+```
+
+To fix this problem we need to call `getSaveAction()` lazy.
+That means only call the `getSaveAction()` method when the `save$` observable is subscribed.
+We can do this using [defer](https://rxjs.dev/api/index/function/defer) operator.
+
+> defer allows you to create an Observable only when the Observer subscribes.
+
+See `defer` operator in action:
+
+```ts title="todo.component.ts"
+import { defer } from "rxjs";
+
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+  readonly form = new FormGroup({
+    title: new FormControl(""),
+    completed: new FormControl(false),
+  });
+
+  save$ = defer(() => this.getSaveAction());
+
+  private getSaveAction() {
+    const formData = this.form.value;
+
+    return this.todoService.save();
+  }
+}
+```
+
+## Problem with template variables
+
+There is one more problem with this approach.
+The `getSaveAction()` method is called in the context of the component.
+If you want to use template variables in the `getSaveAction()` method you cannot do this.
+
+```xml title="todo-list.component.html" {5}
+@for(todo of todos) {
+  <div>
+    <input type="checkbox" [checked]="todo.completed" />
+    <span>{{ todo.title }}</span>
+    <button [appAsyncAction]="save$">Save</button>
+  </div>
+}
+```
+
+<Note type="CRITICAL">
+
+As you can see we cannot use `todo` variable with `save$` variable.
+
+</Note>
+
+To fix this problem we need to extends our `AsyncActionDirective` directive with additional input.
+
+```ts title="async-action.directive.ts" {1,5, 17}
+type AsyncAction = Observable<unknown> | OperatorFunction<unknown, unknown>;
+
+export class AsyncActionDirective {
+  action = input.required<AsyncAction>({ alias: "appAsyncAction" });
+  context = input<unknown>(undefined, { alias: "appAsyncActionData" });
+
+  private readonly inProgress = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+
+  handleClick() {
+    if (this.inProgress()) {
+      return;
+    }
+
+    this.inProgress.set(true);
+
+    const action$ = this.prepareAction();
+
+    action$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.inProgress.set(false)),
+      )
+      .subscribe();
+  }
+
+  private prepareAction() {
+    const action = this.action();
+
+    if (isObservable(action)) {
+      return action;
+    }
+
+    const context = this.context();
+
+    if (context === undefined) {
+      throw new Error("You have provided a operator function but not provided a context");
+    }
+
+    return of(context).pipe(action);
+  }
+}
+```
+
+Now we can update our component.
+
+```ts title="todo.component.ts"
+export class ToDoComponent {
+  private readonly todoService = inject(TodoService);
+
+  save$ = pipe<ToDoItem, void>(switchMap(() => this.getSaveAction()));
+}
+```
+
+```html title="todo.component.html"
+@for(todo of todos) {
+<div>
+  <input type="checkbox" [checked]="todo.completed" />
+  <span>{{ todo.title }}</span>
+  <button [appAsyncAction]="save$" [appAsyncActionData]="todo">Save</button>
+</div>
+}
+```
+
+## Extra
+
+You can also add a loading spinner to the button or any effect you want.
+You can even add a error handling to the directive.
+
+```ts title="async-action.directive.ts" collapse={1-9, 36-999}
+type AsyncAction = Observable<unknown> | OperatorFunction<unknown, unknown>;
+
+export class AsyncActionDirective {
+  action = input.required<AsyncAction>({ alias: "appAsyncAction" });
+  context = input<unknown>(undefined, { alias: "appAsyncActionData" });
+
+  private readonly inProgress = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+
+  handleClick() {
+    if (this.inProgress()) {
+      return;
+    }
+
+    this.inProgress.set(true);
+    const spinner = this.modalService.showGlobalSpinner(`Action in progress`);
+
+    const action$ = this.prepareAction();
+
+    action$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.inProgress.set(false);
+          spinner.hide();
+        }),
+        tap({
+          error: () => {
+            alert("Action failed");
+          },
+        }),
+      )
+      .subscribe();
+  }
+
+  private prepareAction() {
+    const action = this.action();
+
+    if (isObservable(action)) {
+      return action;
+    }
+
+    const context = this.context();
+
+    if (context === undefined) {
+      throw new Error("You have provided a operator function but not provided a context");
+    }
+
+    return of(context).pipe(action);
+  }
+}
+```
