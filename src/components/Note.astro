@@ -1,0 +1,26 @@
+---
+import { z } from "zod";
+
+interface Props {
+  type: z.infer<typeof validator>;
+  className?: string;
+  as?: any; // todo: what type should be here?
+}
+
+const validator = z.enum(["HELPFUL", "IMPORTANT", "CRITICAL"]);
+const noteVariants = {
+  CRITICAL: "border-l-red-300 dark:border-l-red-900 bg-red-100 dark:bg-red-950",
+  HELPFUL: "border-l-sky-300 dark:border-l-sky-900 bg-sky-100 dark:bg-sky-950",
+  IMPORTANT: "border-l-yellow-300 dark:border-l-yellow-900 bg-yellow-100 dark:bg-yellow-950",
+};
+
+const { type, className, as: Component = "div" } = Astro.props;
+
+validator.parse(type);
+
+const variant = noteVariants[type];
+---
+
+<Component class={`px-4 py-1 my-10 rounded border-solid  border-l-8 ${variant} ${className}`}>
+  <slot />
+</Component>
