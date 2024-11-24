@@ -1,7 +1,6 @@
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import tailwind from "@astrojs/tailwind";
-import react from "@astrojs/react";
 import netlify from "@astrojs/netlify";
 import sitemap from "@astrojs/sitemap";
 import metaTags from "astro-meta-tags";
@@ -21,7 +20,6 @@ export default defineConfig({
     }),
     mdx(),
     tailwind(),
-    react(),
     sitemap(),
     metaTags(),
     partytown(),
