@@ -71,7 +71,7 @@ export default class ToDoListComponent {
   }).pipe(
     tap(() => {
       this.todos.update((v) => [...v, this.form.controls.todo.value]);
-      this.form.controls.todo.reset();
+      this.form.controls.todo.reset("");
     }),
   );
 }
