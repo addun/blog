@@ -2,11 +2,13 @@
 import Note from "./Note.astro";
 
 interface Props {
+  owner?: string;
   repository: string;
+  tree?: string;
 }
 
-const { repository } = Astro.props;
-const github = `https://github.com/cdgstudio/${repository}`;
+const { repository, tree, owner = "cdgstudio" } = Astro.props;
+const github = `https://github.com/${owner}/${repository}${tree ? `/tree/master/${tree}` : ""}`;
 ---
 
 <Note type="HELPFUL">
@@ -17,7 +19,7 @@ const github = `https://github.com/cdgstudio/${repository}`;
     </p>
 
     <svg
-      class="fill-black max-w-10 w-full opacity-70 fill-current"
+      class="fill-black max-w-10 w-full opacity-70"
       xmlns="http://www.w3.org/2000/svg"
       width="60"
       height="60"

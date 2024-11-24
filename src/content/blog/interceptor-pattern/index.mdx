@@ -8,12 +8,25 @@ description: |
   See how you can do this in generic way thanks to interception pattern.
 tags:
   - angular
-  - angular-17
+  - angular-19
 thumbnail: "../../images/angular.png"
-repository:
 ---
 
 import Note from "@components/Note.astro";
+import GitHubLink from "@components/GitHubLink.astro";
+import ToDoListComponent from "./to-do-list.component.ts";
+
+<GitHubLink owner="addun" repository="blog" tree="/src/content/blog/interceptor-pattern/async-action.directive.ts" />
+
+## Demo
+
+<ToDoListComponent client:visible />
+
+<Note type="HELPFUL">
+
+Try to click into the `add` button many times and see that task is added only once.
+
+</Note>
 
 ## Intro
 
@@ -62,7 +75,7 @@ We can move this logic to a directive and reuse it in every place where we need 
   standalone: true,
   host: {
     "(click)": "handleClick()",
-    "[attr.disabled]": "inProgress()",
+    "[disabled]": "inProgress()",
   },
 })
 export class AsyncActionDirective {
@@ -279,64 +292,5 @@ export class ToDoComponent {
   <span>{{ todo.title }}</span>
   <button [appAsyncAction]="save$" [appAsyncActionData]="todo">Save</button>
 </div>
-}
-```
-
-## Extra
-
-You can also add a loading spinner to the button or any effect you want.
-You can even add a error handling to the directive.
-
-```ts title="async-action.directive.ts" collapse={1-9, 36-999}
-type AsyncAction = Observable<unknown> | OperatorFunction<unknown, unknown>;
-
-export class AsyncActionDirective {
-  action = input.required<AsyncAction>({ alias: "appAsyncAction" });
-  context = input<unknown>(undefined, { alias: "appAsyncActionData" });
-
-  private readonly inProgress = signal(false);
-  private readonly destroyRef = inject(DestroyRef);
-
-  handleClick() {
-    if (this.inProgress()) {
-      return;
-    }
-
-    this.inProgress.set(true);
-    const spinner = this.modalService.showGlobalSpinner(`Action in progress`);
-
-    const action$ = this.prepareAction();
-
-    action$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => {
-          this.inProgress.set(false);
-          spinner.hide();
-        }),
-        tap({
-          error: () => {
-            alert("Action failed");
-          },
-        }),
-      )
-      .subscribe();
-  }
-
-  private prepareAction() {
-    const action = this.action();
-
-    if (isObservable(action)) {
-      return action;
-    }
-
-    const context = this.context();
-
-    if (context === undefined) {
-      throw new Error("You have provided a operator function but not provided a context");
-    }
-
-    return of(context).pipe(action);
-  }
 }
 ```
