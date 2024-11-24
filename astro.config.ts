@@ -10,6 +10,7 @@ import astroExpressiveCode from "astro-expressive-code";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { getDarkTheme } from "./integrations/expressive-code";
+import angular from "@analogjs/astro-angular";
 
 // https://astro.build/config
 export default defineConfig({
@@ -24,6 +25,7 @@ export default defineConfig({
     sitemap(),
     metaTags(),
     partytown(),
+    angular(),
   ],
   output: "server",
   site: "https://codegen.studio",

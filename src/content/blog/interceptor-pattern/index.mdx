@@ -13,9 +13,12 @@ thumbnail: "../../images/angular.png"
 repository:
 ---
 
+import { HelloComponent } from "./test.component";
 import Note from "@components/Note.astro";
 
 ## Intro
+
+<HelloComponent helpText="OKOKOK" client:load />
 
 You have a button on a website.
 When a user click this button you want to send a HTTP request to the server.
