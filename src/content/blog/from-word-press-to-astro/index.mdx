@@ -11,6 +11,7 @@ modified: "2024-02-01"
 ---
 
 import Note from "@components/Note.astro";
+import { ExampleComponent } from "./example.component.ts";
 
 ## Introduction
 
@@ -36,7 +37,7 @@ Moreover, I wanted to do everything right, like caching, SEO, spam protection, l
 I had to balance between writing from scratch and installing ready-to-use plugin.
 In spite of all I saw the future in it.
 
-<Note type='IMPORTANT'>
+<Note type="IMPORTANT">
 
 Have in mind that I wanted to use WordPress to write only articles.
 I did not want to have a shop, run crons, sending e-mails, manage users etc.
@@ -66,7 +67,7 @@ without using `iframe`. Something almost impossible to do in WordPress.
 ```jsx
 import TicTacToe from "./tic-tac-toe";
 
-<TicTacToe client:visible />;
+<TicTacToe />;
 ```
 
 But then... what about other frameworks? What if I would like to write a demo
@@ -82,13 +83,12 @@ you can run React, Vue, Solid and [much more](https://astro.build/integrations/?
 or even Angular (thanks to [AnalogJS](https://analogjs.org/docs/packages/astro-angular/overview))!
 
 ```jsx
-import { ExampleComponent } from "./angular.component";
+import { ExampleComponent } from "./example.component.ts";
 
 <ExampleComponent client:visible />;
 ```
 
-{/* todo: uncomment when built will succeed */}
-{/* <ExampleComponent client:visible /> */}
+<ExampleComponent client:visible />
 
 After rewriting some components and articles to _Astro_ and _MDX_ I loved it.
 No more taking care about caching, no more taking care about optimization.

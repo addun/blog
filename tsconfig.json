@@ -1,8 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "react",
     "typeRoots": ["./astro/types.d.ts"],
     "baseUrl": ".",
     "paths": {
@@ -10,7 +8,6 @@
       "@icons/*": ["src/components/icons/*"],
       "@utils/*": ["src/utils/*"],
       "@layouts/*": ["src/layouts/*"],
-      "@demos/angular/*": ["src/demos/angular/*"],
       "@demos/react/*": ["src/demos/react/*"],
       "@integrations/*": ["integrations/*"]
     }
