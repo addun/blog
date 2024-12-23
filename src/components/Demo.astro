@@ -7,7 +7,7 @@ interface Props {
   directoryPath?: string;
 }
 
-const { height, repository, branch, directoryPath, path } = Astro.props;
+const { height, repository, branch = "master", directoryPath = "", path = "" } = Astro.props;
 
 const demo = `https://${branch}--${repository}-cdgstudio.netlify.app/${path}`;
 const github = `https://github.com/cdgstudio/${repository}/tree/${branch}/${directoryPath}`;
