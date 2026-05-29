@@ -1,0 +1,312 @@
+---
+id: Kq7Bv3
+title: "Setting Up Your Home Lab: Ubuntu + Docker"
+description: Part 2 of the home lab series. A step-by-step tutorial that takes a fresh Intel N100 box from a blank Ubuntu install to a Docker host running your first container - organized cleanly and version-controlled with Git.
+tags:
+  - home-lab
+thumbnail: "./thumbnail.svg"
+date: "2026-05-29"
+modified: "2026-05-29"
+---
+
+## Introduction
+
+In the [first part of this series](/blog/yaqjpy), we built the hardware: a tiny, energy-efficient Intel N100 machine that sips around 14W while idling.
+That's a great box to own, but on its own it's just silicon.
+This post is about the software that turns it into something useful.
+
+This time it's a hands-on tutorial.
+We'll start from a blank machine and finish with a proper Docker host: Ubuntu installed and hardened, Docker and Docker Compose ready, a clean folder structure for your services, your **first container running** (Portainer), and the whole thing version-controlled with Git.
+By the end you'll have a foundation you can drop any service onto - and the rest of this series will do exactly that.
+
+Follow along on your own N100 box (or any spare machine).
+Every command here is one I actually run.
+
+## Why Ubuntu Server (and Why I Skipped Proxmox)
+
+In part 1 I mentioned hypervisors like Proxmox and ESXi as options.
+They're excellent tools, and a lot of home lab guides start there.
+But the setup we're building runs **plain Ubuntu Server with Docker on top** - no hypervisor at all.
+Here's the reasoning:
+
+- **Less overhead on limited RAM.** Remember, this board has a single memory slot maxed at 16GB.
+  A hypervisor wants its own slice of RAM, and then every VM carries a full guest OS.
+  Docker containers share the host kernel, so the overhead is tiny - my entire stack of 35 containers uses only a few gigabytes.
+- **A simpler mental model.** One OS to patch, one place to look.
+  No nested networking, no VM disk images to resize.
+- **Docker covers ~everything I want to self-host.** Photos, media, monitoring, home automation, DNS - they all ship as containers.
+  I almost never need a full VM.
+- **It's an LTS I can ignore.** Ubuntu Server LTS gets five years of updates.
+  I want my home lab to be something I set up and largely forget.
+
+**When would I reach for a hypervisor?** If you want to run Windows, test other operating systems, or hard-isolate workloads for security.
+For "I want to self-host a bunch of services," bare Ubuntu + Docker is simpler and lighter.
+It does the job.
+
+With that decided, let's build it.
+
+## Step 1: Install Ubuntu Server
+
+Download the latest **Ubuntu Server LTS** ISO (not the desktop edition - you don't need a GUI on a headless box) and write it to a USB stick with a tool like [balenaEtcher](https://etcher.balena.io/) or `dd`.
+Boot the N100 from it and walk through the installer.
+
+A few choices that matter during install:
+
+- **Use the entire NVMe disk** - that 1TB drive from part 1 is your system disk.
+- **Install the OpenSSH server** when the installer offers it.
+  That's the one box to tick - it means you can unplug the monitor and do everything else remotely.
+- **Create your user** (mine is `homelab`).
+  Skip any extra "featured server snaps"; we'll install what we need ourselves.
+
+Reboot, log in once at the console to confirm it works, and note the machine's IP address (`ip a`).
+From here on we work over SSH.
+
+## Step 2: First-Boot Housekeeping
+
+These are the "do them once and forget them" settings that make a server pleasant to live with.
+Don't skip them - each one prevents a class of 1 a.m.
+problem.
+
+**Make it turn itself back on after a power cut.** This one lives in the BIOS/UEFI, not in Ubuntu, but it's the first thing to set on a 24/7 server.
+Reboot into the firmware (usually `Del` or `F2` at startup), find a setting called **Restore on AC Power Loss** (sometimes "AC Power Recovery" or "After Power Failure"), and set it to **Power On** (or "Last State").
+Without it, your home lab stays dark after every outage until you walk over and press the button.
+With it, the server boots itself and - because of how we'll configure Docker - your containers come right back up on their own.
+
+**Give it a static IP.** A server that changes address every reboot is misery.
+The easiest way is a **static DHCP lease** in your router (one place to manage it, recommended).
+Everything else - DNS, bookmarks, the apps you'll add later - depends on the server staying put at a known address.
+
+**Log in over SSH.** From your laptop:
+
+```bash
+ssh homelab@192.168.68.110
+```
+
+(Swap in your own user and IP.) For bonus points, copy your SSH key with `ssh-copy-id` so you're not typing a password every time.
+
+**Turn on automatic security updates.** This single package keeps the OS patched without you thinking about it:
+
+```bash
+sudo apt update
+sudo apt install unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+**Put up a firewall.** `ufw` makes this painless - deny everything inbound by default, then open only what you actually use:
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw enable
+```
+
+That's the whole host hardening.
+Notice how little there is - the goal is a stable, patched base that gets out of the way.
+Now for the part that does the real work.
+
+## Step 3: Install Docker
+
+We'll install Docker from its **official repository** rather than Ubuntu's bundled package, so you get current versions and the Compose plugin.
+First add Docker's repo and key:
+
+```bash
+# Prerequisites and Docker's GPG key
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to apt
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(.
+  /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+
+Then install Docker Engine and the Compose plugin:
+
+```bash
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+One more step makes life much better - **add your user to the `docker` group** so you don't have to prefix every command with `sudo`:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Log out and back in for that to take effect, then verify everything is in place:
+
+```bash
+docker --version          # Docker version 28.x
+docker compose version    # Docker Compose version v2.x
+```
+
+Two things are already true that you don't have to configure: Docker is **enabled on boot** by default (so it starts after that power cut we planned for), and the engine is ready to run containers.
+Let's give it one to run - but first, _how_ we'll define it.
+
+## Why Docker Compose
+
+You _can_ start containers with long `docker run` commands, but you'll regret it the moment you need to recreate one.
+**Docker Compose** lets you describe a service declaratively in a YAML file - image, ports, volumes, networks - and bring it up with one command:
+
+```bash
+docker compose up -d
+```
+
+The win isn't convenience, it's **reproducibility**.
+The compose file _is_ the documentation.
+If your server died tomorrow, you could reinstall Ubuntu, pull your config, and `docker compose up` your way back to a working home lab in an evening.
+That's a promise a pile of `docker run` commands can't make.
+Everything we add from here on will be a compose file.
+
+## Step 4: Lay Out Your `apps` Folder
+
+Before running anything, decide where things live.
+A little structure now saves a lot of confusion later.
+The rule is simple: **one folder per service**, all under `~/apps`.
+
+```bash
+mkdir -p ~/apps
+```
+
+By the time you've added a few services it'll look like this - and because every service is self-contained, you can always `cd` into one and manage it without touching the others:
+
+```
+~/apps/
+├── portainer/
+│   ├── docker-compose.yml
+│   └── data/
+├── adguardhome/
+│   ├── docker-compose.yaml
+│   ├── .env
+│   ├── conf/
+│   └── data/
+└── immich/
+    ├── docker-compose.yml
+    └── .env
+```
+
+Each folder holds that service's compose file, an optional `.env` for settings and secrets, and the directories Docker bind-mounts for its data.
+That's the whole convention.
+Let's create the first one.
+
+## Step 5: Run Your First Container (Portainer)
+
+We'll start with [Portainer](https://www.portainer.io/) - a web UI for managing Docker.
+It's a great first service because it gives you an immediate, visual confirmation that everything works, and it's genuinely handy for watching logs and containers later.
+
+Create its folder and compose file:
+
+```bash
+mkdir -p ~/apps/portainer
+```
+
+Then create `~/apps/portainer/docker-compose.yml` with this content:
+
+```yaml
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:2.39.1-alpine
+    restart: unless-stopped
+    ports:
+      - 9443:9443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+```
+
+A quick tour of what each line does, because these patterns repeat in every service you'll ever add:
+
+- **`image: ...:2.39.1-alpine`** - a **pinned version**, not `latest`.
+  Pinning means an upgrade is a deliberate, visible change, never a surprise after a routine pull.
+- **`restart: unless-stopped`** - this is the line that brings the container back automatically after a reboot or that power cut from Step 2.
+  Put it on every service.
+- **`ports: 9443:9443`** - publishes Portainer's HTTPS UI so you can reach it from your laptop.
+  (Later in this series we'll put a reverse proxy in front of everything and drop most of these.)
+- **`volumes`** - `/var/run/docker.sock` lets Portainer talk to Docker, and `./data` keeps its settings in the folder next to the compose file, so nothing important lives _inside_ the container.
+
+Now bring it up:
+
+```bash
+cd ~/apps/portainer
+docker compose up -d
+```
+
+Docker pulls the image and starts the container.
+Check it's running:
+
+```bash
+docker compose ps
+```
+
+## Step 6: Open Portainer
+
+In your browser, go to:
+
+```
+https://192.168.68.110:9443
+```
+
+(Your server's IP. It's a self-signed certificate, so your browser will warn you - that's expected here; accept it to continue.)
+Portainer asks you to create an admin user on first launch.
+Do that, and you'll land on a dashboard showing your local Docker environment - one container running, the one you just defined.
+
+That's the loop you'll repeat for every service in this series: make a folder, write a compose file, `docker compose up -d`.
+You now have a working Docker host.
+One step left to make it _maintainable_.
+
+## Step 7: Make It Config-as-Code with Git
+
+Here's the habit that turns a pile of YAML into something you can trust and rebuild: **make `~/apps` a Git repository.** Every compose file becomes version-controlled, so `git diff` shows exactly what you changed, and a bad edit is one `git checkout` away from undone.
+
+The key is a `.gitignore` that commits the _configuration_ but never the _data or secrets_.
+Create `~/apps/.gitignore`:
+
+```gitignore
+# Never commit secrets
+.env
+
+# Never commit service data - it's backed up separately
+portainer/data
+adguardhome/conf
+adguardhome/data
+immich/library
+immich/postgres
+```
+
+Then initialise the repo and make your first commit:
+
+```bash
+cd ~/apps
+git init
+git add .
+git commit -m "Add Portainer"
+```
+
+Now Git tracks the _recipe_ (your compose files) and ignores the _ingredients_ (databases, photos, and every `.env`).
+The repository stays small and contains zero secrets, while still being a complete blueprint of your home lab.
+Push it to a private GitHub or Gitea repo and rebuilding from scratch becomes: clone, recreate your `.env` files, restore data from backup, `docker compose up`.
+
+From here, adding a service is always the same four moves: **new folder → compose file → `docker compose up -d` → commit.**
+
+## What's Next?
+
+You now have the foundation: a hardened Ubuntu host that survives power cuts, Docker and Compose, a clean per-service layout, your first running container, and config-as-code in Git.
+Adding anything new is now routine.
+
+In the upcoming parts of this series, we'll fill that foundation with the services that make a home lab worth running:
+
+1. **Network-wide DNS and ad-blocking** with AdGuard Home
+2. **The media stack** - the \*arr apps, Jellyfin, and a download client safely behind a VPN
+3. **Photos** - self-hosting a Google Photos replacement with Immich (and using the N100's iGPU for face recognition)
+4. **Monitoring** - Grafana, Prometheus, Loki, and Alloy keeping an eye on everything, including that power draw from part 1
+5. **A reverse proxy + security** - Caddy, single sign-on, and intrusion prevention, so every service gets a clean `https://` URL
+
+The best home lab is the one you actually maintain.
+A clean foundation is what makes maintenance pleasant instead of scary.
