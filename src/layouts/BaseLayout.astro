@@ -6,6 +6,15 @@ import Navbar from "@components/Navbar.astro";
 
 <html lang="en">
   <head>
+    <script is:inline>
+      (function () {
+        const key = "color-theme";
+        const stored = localStorage.getItem(key);
+        const theme = stored === "light" ? "light" : "dark";
+        document.documentElement.dataset.mode = theme;
+      })();
+    </script>
+
     <slot name="head" />
 
     <meta charset="utf-8" />
