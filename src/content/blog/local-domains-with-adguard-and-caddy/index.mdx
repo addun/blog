@@ -34,7 +34,15 @@ Three things cooperate here, and it's worth seeing the whole picture before we b
 
 So a request for `http://portainer.home.arpa` flows: **device → AdGuard** (resolves the name to the server's IP) **→ Caddy** (sees the hostname, forwards to the Portainer container). Two small services, a much nicer home lab.
 
-A quick note on `home.arpa`: it's the domain officially reserved for home networks (RFC 8375). It won't ever collide with a real domain on the internet, which makes it a safer choice than the `.local` (reserved for mDNS) or made-up `.lan` you'll see in older guides.
+<Note type="HELPFUL">
+
+**Why `home.arpa`?** It's the domain officially reserved for home networks ([RFC 8375](https://datatracker.ietf.org/doc/html/rfc8375)), so it will never collide with a real domain on the internet. But the bigger practical reason is that it keeps plain `http://` working without browser warnings:
+
+- **No forced HTTPS.** Some TLDs (`.dev`, `.app`, and others) sit on the browsers' built-in HSTS preload list, which silently upgrades _every_ request to HTTPS. Our local services are served over plain `http://` for now, so a preloaded TLD would make the browser refuse the connection or throw a certificate error. `home.arpa` isn't preloaded, so `http://portainer.home.arpa` simply loads.
+- **Treated as a real hostname.** Browsers won't try to "search" it or second-guess the address the way they sometimes do with a bare made-up word.
+- **No clashes with `.local` or `.lan`.** `.local` is reserved for mDNS (Bonjour/Avahi), and using it for ordinary DNS rewrites leads to flaky resolution; `.lan` is just an unofficial convention with no guarantees behind it.
+
+</Note>
 
 ## Step 1: Clear Port 53 (the Ubuntu DNS gotcha)
 
@@ -212,11 +220,32 @@ By default, containers from different Compose projects can't talk to each other.
 - **Name-based addressing.** Docker runs its own DNS _inside_ that network, so containers can reach each other by **container name**. That's why `reverse_proxy adguardhome:80` just works - Caddy looks up `adguardhome` on the shared network, no IP addresses to track or hardcode.
 - **No published ports on the backends.** Because Caddy reaches services over the internal network, those services don't need to publish their web ports to the host at all. Only **Caddy** publishes port 80. Everything else stays private on the Docker network and is reachable _only_ through the proxy - which is both cleaner and safer.
 
-The first compose file to mention `reverse-proxy` creates it; every other one just joins it (`networks: { reverse-proxy: { name: reverse-proxy } }`). From here on, every new service you add joins the same network and Caddy can route to it immediately.
+The first compose file to mention `reverse-proxy` creates it; every other one just joins it with the same block we've used in each service:
+
+```yaml
+networks:
+  reverse-proxy:
+    name: reverse-proxy
+```
+
+From here on, every new service you add joins the same network and Caddy can route to it immediately.
 
 <Note type="IMPORTANT">
 
 **One adjustment for Portainer:** in part 2 Portainer wasn't on this network, and we reached it on its HTTPS port 9443. To put it behind Caddy, add it to the `reverse-proxy` network too. Portainer already listens on plain HTTP port **9000** internally, so you don't need to publish _any_ port for it anymore - Caddy reaches it by name at `portainer:9000`. That's why the Caddyfile above points there.
+
+</Note>
+
+<Note type="IMPORTANT">
+
+**Create the `Caddyfile` before you start the container.** We're bind-mounting `./Caddyfile` into Caddy. If that path doesn't exist yet when you run `docker compose up`, Docker "helpfully" creates it - as an empty **directory**, not a file - and Caddy fails to start with a confusing error. So make sure the file is there first:
+
+```bash
+cd ~/apps/proxy
+touch Caddyfile   # only if you haven't created it already
+```
+
+(If Docker already turned it into a directory, stop the container, `rmdir Caddyfile`, create the file properly, and bring it back up.)
 
 </Note>
 
