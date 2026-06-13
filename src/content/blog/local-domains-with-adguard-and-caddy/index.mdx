@@ -165,6 +165,17 @@ A few practical notes:
 
 With the router updated, every device on the network now resolves through AdGuard. Check the AdGuard dashboard - you'll see queries rolling in and a blocked-percentage climbing.
 
+<Note type="IMPORTANT">
+
+**Some devices quietly ignore all of this.** A handful of devices won't use the DNS server your router hands out, so they skip AdGuard entirely - no ad-blocking, and your `*.home.arpa` names won't resolve. There are two common culprits:
+
+- **Private DNS.** Phones - especially Android and iOS - ship with a **private DNS** feature (Android's "Private DNS", or encrypted DNS / iCloud Private Relay on iOS) that tunnels queries straight to a public resolver like Cloudflare or Google. This is the single most common reason "DNS works on my laptop but not my phone."
+- **Hardcoded public DNS.** Many smart TVs, streaming sticks, and IoT gadgets are configured to talk to `8.8.8.8` (or similar) directly, ignoring the DHCP-provided DNS completely.
+
+If a device isn't being filtered or can't open your local domains, look in its network settings and switch DNS back to **Automatic / DHCP** (and turn off any private-DNS option). The truly stubborn ones can be forced back in line by redirecting outbound port 53 at the router - but that's a topic for another day.
+
+</Note>
+
 ## Step 5: Add the Caddy Reverse Proxy
 
 Now for the nice URLs. Caddy will sit in front of everything, listening on port 80 and routing by hostname. Create its folder:
@@ -293,6 +304,8 @@ docker compose start
 The wildcard is the magic: it means _every_ `something.home.arpa` name resolves to your server, so you never have to touch AdGuard again - adding a service is just a new block in the Caddyfile.
 
 **Prefer the dashboard?** You can do exactly the same thing in the UI: go to **Filters → DNS rewrites → Add DNS rewrite** and add `home.arpa` and `*.home.arpa`, both answering with your server's IP. AdGuard just writes those entries into the same `AdGuardHome.yaml` for you, so the end result is identical - the config-file route simply keeps the change in version control.
+
+![The AdGuard Home DNS rewrites page showing home.arpa and *.home.arpa both pointing at the server's IP address](./dns-rewrite.webp)
 
 Now the full chain is live. Open:
 

@@ -1,0 +1,228 @@
+---
+id: Pv9Kc2
+title: "Self-Hosting Your Photos with Immich"
+description: Part 4 of the home lab series. A step-by-step tutorial for self-hosting Immich - a fast, private Google Photos replacement - on your home lab, including the multi-container compose file, hardware-accelerated machine learning on the Intel N100, a Caddy entry for photos.home.arpa, and backups for the data you can't afford to lose.
+tags:
+  - home-lab
+thumbnail: "./thumbnail.svg"
+date: "2026-06-13"
+modified: "2026-06-13"
+---
+
+import Note from "@components/Note.astro";
+
+## Introduction
+
+By now our home lab has a solid spine: a [Docker host](/blog/Kq7Bv3) and, from [part 3](/blog/Wm4Tn8), network-wide DNS plus a Caddy reverse proxy handing out tidy `*.home.arpa` addresses. Time to put something genuinely useful on it - something you'd otherwise pay a subscription for.
+
+This post sets up **[Immich](https://immich.app/)** ([source on GitHub](https://github.com/immich-app/immich)): a self-hosted photo and video manager that's a remarkably close replacement for Google Photos. Auto-backup from your phone, albums, search, face recognition - but the photos live on _your_ disk, in _your_ house, with no monthly fee and nobody scanning them. By the end you'll have it running at `http://photos.home.arpa`, with the phone app backing up automatically and the Intel N100's GPU doing the heavy lifting for search.
+
+It's also a milestone for the series: Immich is our **first multi-container application**, so it's the perfect moment to see how several containers cooperate as one service.
+
+## What Immich Looks Like (Four Containers, One App)
+
+Everything we've run so far - Portainer, AdGuard, Caddy - was a single container. Immich is four, and they each have a job:
+
+- **`immich-server`** - the web app and API you actually interact with. This is the one Caddy talks to.
+- **`immich-machine-learning`** - the brains behind search and face recognition. It runs AI models locally; nothing leaves your network.
+- **`database`** (PostgreSQL) - stores all the metadata: albums, faces, locations, who's who. Note it's a _special_ Postgres image with vector extensions baked in, which Immich needs - don't swap it for plain `postgres`.
+- **`redis`** (Valkey) - a fast in-memory cache and job queue.
+
+This is where the two-network idea from part 3 really earns its keep. The server joins **two** networks: `reverse-proxy` (so Caddy can reach it) and a private `immich` network (so it can reach the database, redis, and ML). The other three join **only** the private `immich` network - they never need to be reachable from the proxy or the outside world. Clean separation, by design.
+
+## Step 1: The Compose File
+
+Following our convention, Immich gets its own folder:
+
+```bash
+mkdir -p ~/apps/immich
+```
+
+Create `~/apps/immich/docker-compose.yml`. It's longer than anything we've written so far, but every block is one of the four services above:
+
+```yaml
+services:
+  immich-server:
+    container_name: immich
+    image: ghcr.io/immich-app/immich-server:v2.7.5
+    volumes:
+      - ./library:/data # where your photos and videos live
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 2283:2283 # published for the mobile app - explained in "Back Up Your Phone" below
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - database
+    restart: unless-stopped
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128 # hardware acceleration
+    networks:
+      - reverse-proxy # so Caddy can reach it
+      - immich # so it can reach the db / redis / ml
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:v2.7.5-openvino
+    env_file:
+      - .env
+    restart: unless-stopped
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    dns:
+      - 127.0.0.11 # Docker's internal DNS...
+      - 8.8.8.8 # ...with a public fallback so it can download models
+    networks:
+      - immich
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:9
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: unless-stopped
+    networks:
+      - immich
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: unless-stopped
+    networks:
+      - immich
+
+networks:
+  reverse-proxy:
+    name: reverse-proxy
+  immich:
+    name: immich
+    driver: bridge
+```
+
+A few things worth pointing out:
+
+- **`./library`** is where your actual photos and videos end up. It's a folder right next to the compose file - easy to find, easy to back up.
+- **`depends_on`** tells Docker to start redis and the database _before_ the server.
+- **Pinned versions everywhere**, same habit as the rest of the series. Updating Immich is a deliberate bump of these tags, never a surprise.
+
+## Step 2: The `.env` File
+
+The compose file references a few secrets and settings with `${...}`. Those live in `~/apps/immich/.env`, right next to it:
+
+```bash
+TZ=Europe/Warsaw
+
+DB_DATABASE_NAME=immich
+DB_USERNAME=immich
+DB_PASSWORD=use-a-long-random-password-here
+```
+
+Generate a real password rather than typing one - `openssl rand -base64 24` is perfect. As always, this file is for secrets and stays out of Git (we'll handle that in the last step).
+
+## Step 3: Hardware Acceleration on the N100
+
+Remember the Intel N100 from [part 1](/blog/yaqjpy)? It has an integrated GPU, and this is where it pays off. The `devices` and `-openvino` image you saw above hand that GPU to Immich, so face recognition and smart search run on hardware built for it instead of pinning the CPU.
+
+<Note type="HELPFUL">
+
+**No Intel GPU?** Hardware acceleration is optional. If your machine doesn't have an Intel iGPU, just remove the two `devices:` blocks and change the machine-learning image from `...:v2.7.5-openvino` to plain `...:v2.7.5`. Everything still works - the AI features simply run on the CPU, a bit slower.
+
+</Note>
+
+You can confirm your N100's GPU is exposed to Linux with:
+
+```bash
+ls -l /dev/dri/renderD128
+```
+
+If that file exists, you're set.
+
+## Step 4: First Launch
+
+From the Immich folder, bring all four containers up at once:
+
+```bash
+cd ~/apps/immich
+docker compose up -d
+```
+
+The first start takes a minute - it's pulling four images and initialising the database. Once it settles, Immich is running and listening on port 2283 - but rather than poke at it by IP, let's give it a proper address first.
+
+## Step 5: Add It to Caddy
+
+Here's the moment the groundwork from part 3 pays off. We want `http://photos.home.arpa` to reach Immich. Open your `~/apps/proxy/Caddyfile` and add one block inside the existing `http://*.home.arpa { ... }` site:
+
+```caddy
+@photos host photos.home.arpa
+handle @photos {
+	reverse_proxy immich:2283
+}
+```
+
+That's the entire change. `reverse_proxy immich:2283` works because Caddy and the Immich server share the `reverse-proxy` network and can find each other by container name - exactly the pattern from part 3.
+
+Reload Caddy to pick up the new route:
+
+```bash
+docker compose restart caddy
+```
+
+<Note type="HELPFUL">
+
+**No DNS change needed.** Thanks to the wildcard rewrite (`*.home.arpa`) we added to AdGuard in part 3, `photos.home.arpa` already resolves to your server. This is the promise paying off: every new service from here on is just a `handle` block in the Caddyfile - nothing to touch in AdGuard.
+
+</Note>
+
+Now open `http://photos.home.arpa` in your browser. You'll be greeted by a setup screen to **create the admin account** - this first user is the owner of the instance. Make it, log in, and you've got an empty photo library waiting to fill - reachable at a name you can actually remember.
+
+## Step 6: Back Up Your Phone
+
+The real magic of Immich is the mobile app. Install **Immich** from the App Store or Play Store, and when it asks for the server URL, give it your new address:
+
+```
+http://photos.home.arpa
+```
+
+Log in with your admin account, then enable **backup** and pick which albums to sync. From now on, every photo you take is automatically copied to your home lab - the Google Photos experience, minus Google.
+
+<Note type="IMPORTANT">
+
+**If the app can't reach `photos.home.arpa`, point it at the server's IP and port instead:**
+
+```
+http://192.168.68.110:2283
+```
+
+This is exactly why we left port `2283` published in the compose file. Phones very often have a **private DNS** feature switched on - Android's "Private DNS", or encrypted DNS / iCloud Private Relay on iOS - which tunnels DNS queries straight to a public resolver and **bypasses AdGuard entirely**. When that's on, `photos.home.arpa` never resolves on the phone, even on home Wi-Fi. Using the raw IP sidesteps DNS altogether; alternatively, turn the phone's private DNS off so it resolves through AdGuard like everything else.
+
+</Note>
+
+<Note type="IMPORTANT">
+
+Either address only works on your home network (that's the whole point of `home.arpa` and a private IP). So phone backup runs whenever you're on home Wi-Fi. Reaching Immich from outside the house - mobile data, travelling - needs a public domain and HTTPS, which is the subject of a later post in this series. Until then, your phone catches up the moment you walk back through the door and reconnect to Wi-Fi.
+
+</Note>
+
+## Step 7: Back Up the Data That Matters
+
+Your home lab's _config_ is already safe in Git. But your photos are not config - they're irreplaceable, and this is exactly the data the SATA backup drive from [part 1](/blog/yaqjpy) was for. Two folders hold everything Immich cares about:
+
+- **`~/apps/immich/library`** - the original photos and videos.
+- **`~/apps/immich/postgres`** - the database: albums, faces, the lot.
+
+Both need backing up to a _separate_ disk (and ideally an off-site copy too - the 3-2-1 rule). A simple recurring job that copies `library` and a database dump to `/mnt/storage/backups` is enough to start. Whatever you do, **test that you can restore it** before you trust it with the only copy.
+
+<Note type="CRITICAL">
+
+Don't skip backups for this one. Self-hosting means _you_ are the backup department now. A failed SSD with no copy means those photos are gone for good - there's no "restore from Google" anymore.
+
+</Note>
