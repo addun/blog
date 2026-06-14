@@ -15,6 +15,12 @@ import Note from "@components/Note.astro";
 
 In [part 2](/blog/Kq7Bv3) we turned our Intel N100 box into a Docker host and ran our first container, Portainer. But to reach it we typed something like `https://192.168.68.110:9443` - an IP address and a port number to memorise. Add a few more services and you're juggling a notebook full of `:9000`, `:8096`, `:2283`. That gets old fast.
 
+<Note type="HELPFUL">
+
+**What is `192.168.68.110`?** It's the static IP of our home lab server - the one we fixed in place back in part 2. Yours will almost certainly be different; run `ip a` on the server to find it, and mentally swap in your own address wherever you see `192.168.68.110` in this guide.
+
+</Note>
+
 This post fixes that, and throws in network-wide ad-blocking for free. By the end you'll have:
 
 - **AdGuard Home** filtering ads and trackers for _every_ device on your network - phones, TVs, laptops - at the DNS level.
@@ -44,7 +50,7 @@ So a request for `http://portainer.home.arpa` flows: **device → AdGuard** (res
 
 </Note>
 
-## Step 1: Clear Port 53 (the Ubuntu DNS gotcha)
+## Step 1: Clear Port 53
 
 A DNS server needs port 53. On Ubuntu, **`systemd-resolved` is already listening there**, so AdGuard won't be able to start until we move it aside. This is the single most common thing that trips people up, so we do it first.
 
@@ -157,11 +163,15 @@ Some of these guides set the router's _upstream_ (WAN) DNS, which also works - t
 
 </Note>
 
+<Note type="HELPFUL">
+
 A few practical notes:
 
-- **Leave the secondary DNS blank, or set it to the same IP.** If you put a public DNS (like `8.8.8.8`) as secondary, devices will sometimes use it and bypass your ad-blocking entirely.
+- **Set a public DNS as the secondary.** Put a public resolver like `8.8.8.8` (Google) or `1.1.1.1` (Cloudflare) in the secondary slot. This is your safety net: if the home lab is ever down - a reboot, an update, a dead drive - name resolution falls back to the public server and the whole household's internet keeps working. You lose ad-blocking until AdGuard is back, but nobody's stuck without the internet. A server that's off should never take the entire network down with it.
 - **Reconnect your devices** (or wait for the DHCP lease to renew) so they pick up the new DNS. You can verify on a laptop with `nslookup doubleclick.net` - AdGuard should return `0.0.0.0`.
 - **Can't change router DNS?** Some ISP routers don't allow it. Either put your own router in front, or set the DNS manually per-device pointing at `192.168.68.110`.
+
+</Note>
 
 With the router updated, every device on the network now resolves through AdGuard. Check the AdGuard dashboard - you'll see queries rolling in and a blocked-percentage climbing.
 

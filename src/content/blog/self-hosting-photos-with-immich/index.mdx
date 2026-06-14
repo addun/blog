@@ -13,11 +13,7 @@ import Note from "@components/Note.astro";
 
 ## Introduction
 
-By now our home lab has a solid spine: a [Docker host](/blog/Kq7Bv3) and, from [part 3](/blog/Wm4Tn8), network-wide DNS plus a Caddy reverse proxy handing out tidy `*.home.arpa` addresses. Time to put something genuinely useful on it - something you'd otherwise pay a subscription for.
-
 This post sets up **[Immich](https://immich.app/)** ([source on GitHub](https://github.com/immich-app/immich)): a self-hosted photo and video manager that's a remarkably close replacement for Google Photos. Auto-backup from your phone, albums, search, face recognition - but the photos live on _your_ disk, in _your_ house, with no monthly fee and nobody scanning them. By the end you'll have it running at `http://photos.home.arpa`, with the phone app backing up automatically and the Intel N100's GPU doing the heavy lifting for search.
-
-It's also a milestone for the series: Immich is our **first multi-container application**, so it's the perfect moment to see how several containers cooperate as one service.
 
 ## What Immich Looks Like (Four Containers, One App)
 
@@ -155,16 +151,20 @@ cd ~/apps/immich
 docker compose up -d
 ```
 
-The first start takes a minute - it's pulling four images and initialising the database. Once it settles, Immich is running and listening on port 2283 - but rather than poke at it by IP, let's give it a proper address first.
+The first start takes a minute - it's pulling four images and initializing the database. Once it settles, Immich is running and listening on port 2283 - but rather than poke at it by IP, let's give it a proper address first.
 
 ## Step 5: Add It to Caddy
 
 Here's the moment the groundwork from part 3 pays off. We want `http://photos.home.arpa` to reach Immich. Open your `~/apps/proxy/Caddyfile` and add one block inside the existing `http://*.home.arpa { ... }` site:
 
 ```caddy
-@photos host photos.home.arpa
-handle @photos {
-	reverse_proxy immich:2283
+http://*.home.arpa {
+	# ...the dns and portainer blocks from part 3 are already here...
+
+	@photos host photos.home.arpa
+	handle @photos {
+		reverse_proxy immich:2283
+	}
 }
 ```
 
@@ -178,7 +178,7 @@ docker compose restart caddy
 
 <Note type="HELPFUL">
 
-**No DNS change needed.** Thanks to the wildcard rewrite (`*.home.arpa`) we added to AdGuard in part 3, `photos.home.arpa` already resolves to your server. This is the promise paying off: every new service from here on is just a `handle` block in the Caddyfile - nothing to touch in AdGuard.
+**No DNS change needed.** Thanks to the wildcard rewrite (`*.home.arpa`) we added to AdGuard in part 3, `photos.home.arpa` already resolves to your server.
 
 </Note>
 
@@ -214,7 +214,7 @@ Either address only works on your home network (that's the whole point of `home.
 
 ## Step 7: Back Up the Data That Matters
 
-Your home lab's _config_ is already safe in Git. But your photos are not config - they're irreplaceable, and this is exactly the data the SATA backup drive from [part 1](/blog/yaqjpy) was for. Two folders hold everything Immich cares about:
+Your photos and videos are irreplaceable - there's no re-downloading the only copy of a birthday or a holiday. This is exactly the data the SATA backup drive from [part 1](/blog/yaqjpy) was for. Two folders hold everything Immich cares about:
 
 - **`~/apps/immich/library`** - the original photos and videos.
 - **`~/apps/immich/postgres`** - the database: albums, faces, the lot.
