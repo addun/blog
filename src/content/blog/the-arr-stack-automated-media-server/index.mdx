@@ -1,0 +1,256 @@
+---
+id: Tv7Qm3
+title: "Your Own Media Server: The *arr Stack"
+description: Part 5 of the home lab series. A step-by-step tutorial for building an automated media server with the *arr stack - Jellyfin, Sonarr, Radarr, Prowlarr and a Transmission download client - all on the home lab, behind Caddy.
+tags:
+  - home-lab
+thumbnail: "./thumbnail.svg"
+date: "2026-06-14"
+modified: "2026-06-14"
+---
+
+import Note from "@components/Note.astro";
+
+## Introduction
+
+We've built a [Docker host](/blog/Kq7Bv3), given it [DNS and clean local domains](/blog/Wm4Tn8), and [self-hosted our photos](/blog/Pv9Kc2). This part is the one a lot of people build a home lab _for_: a fully automated media server - your own private Netflix - running on the same little Intel N100 box.
+
+The collection of tools that makes this happen is affectionately called the **\*arr stack** (Sonarr, Radarr, Prowlarr - notice the pattern). Together they turn "I'd like to watch that" into "it's on the TV", automatically: you ask for a film, the stack finds it, downloads it, files it neatly, and your media player picks it up minutes later.
+
+It's the biggest compose file in the series so far, so we'll take it a piece at a time.
+
+<Note type="IMPORTANT">
+
+**A word on what you download.** This software is completely legal and has plenty of legitimate uses - Linux ISOs, Creative Commons films, public-domain archives, and managing media you already own. Downloading copyrighted material you don't have the rights to is not, and that's on you. This guide is about the _self-hosting_; what you point it at is your responsibility and your local law's business.
+
+</Note>
+
+## Meet the Stack
+
+Eight containers cooperate here. It sounds like a lot, but each has one clear job:
+
+- **Prowlarr** - the indexer manager. It knows _where_ to search and feeds that list to everyone else, so you configure your sources in one place.
+- **Radarr** - movies. Watches for films you want, asks Prowlarr to find them, hands the result to the download client, then renames and files the finished movie.
+- **Sonarr** - exactly the same, but for TV shows.
+- **Transmission** - the download client (BitTorrent), the thing that actually fetches files.
+- **Jellyfin** - the media player: the Netflix-style interface you actually watch, with apps for the TV, phone, and browser.
+- **Seerr** - the friendly "request" front-end. Household members search and click "request"; it tells Radarr/Sonarr to go get it.
+- **Huntarr** & **FlareSolverr** - two helpers: Huntarr backfills missing items and quality upgrades, FlareSolverr helps Prowlarr get past Cloudflare on some indexers. Both optional.
+
+The flow, end to end: **Seerr** (request) → **Radarr/Sonarr** (decide what's needed) → **Prowlarr** (find it) → **Transmission** (download) → Radarr/Sonarr file it into the library → **Jellyfin** plays it.
+
+<Note type="IMPORTANT">
+
+**About the download client and your privacy.** A BitTorrent client exposes your home IP to every peer it connects to, so on an always-on home lab you'll want to route Transmission's traffic through a VPN. That's a meaty topic in its own right - kill-switches, WireGuard, provider config - so it gets its own dedicated post later in the series. This guide gets the stack working first; **add the VPN before you point it at any public tracker.**
+
+</Note>
+
+## Step 1: The Compose File
+
+As always, its own folder:
+
+```bash
+mkdir -p ~/apps/arr
+```
+
+Create `~/apps/arr/docker-compose.yml`. It's long, but it's just the nine services from above, each following the same shape we've used all series:
+
+```yaml
+services:
+  jellyfin:
+    image: ghcr.io/jellyfin/jellyfin:10.11.11
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128 # GPU for transcoding
+    group_add:
+      - "992" # the host's "render" group - lets Jellyfin use the GPU
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - /mnt/storage/media:/media
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  prowlarr:
+    image: ghcr.io/hotio/prowlarr:release-2.4.0.5397
+    container_name: prowlarr
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./prowlarr/config:/config
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  radarr:
+    image: ghcr.io/hotio/radarr:release-6.2.1.10461
+    container_name: radarr
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./radarr/config:/config
+      - /mnt/storage/media:/media # one shared mount - see Step 2
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  sonarr:
+    image: ghcr.io/hotio/sonarr:release-4.0.17.2952
+    container_name: sonarr
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./sonarr/config:/config
+      - /mnt/storage/media:/media
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:v3.3.0
+    container_name: seerr
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./seerr/config:/app/config
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  huntarr:
+    image: ghcr.io/plexguide/huntarr:8.2.10
+    container_name: huntarr
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./huntarr/config:/config
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:v3.5.0
+    container_name: flaresolverr
+    environment:
+      - TZ=Etc/UTC
+    restart: unless-stopped
+    networks: [arr]
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:4.1.1
+    container_name: transmission
+    environment: [PUID=1000, PGID=1000, UMASK=002, TZ=Etc/UTC]
+    volumes:
+      - ./transmission/config:/config
+      - /mnt/storage/media/downloads:/downloads
+    restart: unless-stopped
+    networks: [arr, reverse-proxy]
+
+networks:
+  arr:
+    driver: bridge
+  reverse-proxy:
+    name: reverse-proxy
+```
+
+Two details to notice:
+
+- **Jellyfin gets the GPU**, just like Immich in part 4. That `renderD128` device and the `992` render group let the N100's iGPU transcode video on the fly - the difference between smooth playback on a phone and a stuttering mess.
+- **Every service joins the shared `reverse-proxy` network** alongside its private `arr` network, so Caddy can reach each one by container name - and none of them needs to publish a port to the host.
+
+## Step 2: One Shared Media Folder (and Why)
+
+This is the detail that trips up most first-time setups. Notice that Radarr, Sonarr and Jellyfin all mount the **same** folder - `/mnt/storage/media` - rather than separate "downloads" and "movies" folders. That's deliberate.
+
+Lay out one media tree on your storage drive (the SATA disk from part 1):
+
+```
+/mnt/storage/media/
+├── downloads/   # Transmission writes here
+├── movies/      # Radarr files finished films here
+└── shows/       # Sonarr files finished episodes here
+```
+
+<Note type="HELPFUL">
+
+**What is `/mnt/storage/media`?** It's just where I mount the drive that holds my media - in my case the extra SATA disk from part 1. Media is bulky and grows fast, so a dedicated drive is the natural home, and a spare **old HDD** is perfect for it: spinning rust is cheap, capacious, and plenty fast enough for streaming video. Mount it once (a `/etc/fstab` entry so it comes back after a reboot) and point the stack at it. **No second drive yet?** Don't let that stop you - just use a folder on your existing system disk, like `/home/homelab/media`, and swap that path into the volumes below. You can always move to a bigger drive later.
+
+</Note>
+
+Because `downloads`, `movies` and `shows` live on **one filesystem**, Radarr and Sonarr can move a finished download into the library with an instant **hardlink** instead of copying gigabytes around. No wasted space, no slow copies, and the original stays seeded for others. Mount separate volumes and you lose this - every import becomes a slow, space-doubling copy. One mount, one filesystem: that's the trick.
+
+The `PUID=1000` / `PGID=1000` / `UMASK=002` you see on every service make all the apps run as the same user and write group-friendly permissions, so none of them trip over files another one created.
+
+## Step 3: Launch It
+
+Bring the whole stack up at once:
+
+```bash
+cd ~/apps/arr
+docker compose up -d
+```
+
+Docker pulls the eight images and starts them. Give it a minute, then move on to giving each app a clean address.
+
+## Step 4: Put It Behind Caddy
+
+Each app has a web interface, and thanks to the wildcard DNS from part 3 we can give them all clean names. Open `~/apps/proxy/Caddyfile` and add these blocks inside the existing `http://*.home.arpa { ... }` site:
+
+```caddy
+http://*.home.arpa {
+	# ...your existing dns / portainer / photos blocks...
+
+	@movies host movies.home.arpa
+	handle @movies {
+		reverse_proxy jellyfin:8096
+	}
+
+	@radarr host radarr.home.arpa
+	handle @radarr {
+		reverse_proxy radarr:7878
+	}
+
+	@sonarr host sonarr.home.arpa
+	handle @sonarr {
+		reverse_proxy sonarr:8989
+	}
+
+	@prowlarr host prowlarr.home.arpa
+	handle @prowlarr {
+		reverse_proxy prowlarr:9696
+	}
+
+	@seerr host seerr.home.arpa
+	handle @seerr {
+		reverse_proxy seerr:5055
+	}
+
+	@transmission host transmission.home.arpa
+	handle @transmission {
+		reverse_proxy transmission:9091
+	}
+}
+```
+
+Reload Caddy and you're done:
+
+```bash
+docker compose restart caddy
+```
+
+You can now reach everything at `movies.home.arpa`, `radarr.home.arpa`, and so on.
+
+## Step 5: Wire Them Together
+
+The containers are running; now they need to know about each other. This part happens in each app's web UI, and it's mostly a matter of pasting API keys around. The short version:
+
+1. **Prowlarr** (`prowlarr.home.arpa`) - add your indexers under **Indexers**. Then under **Settings → Apps**, add Radarr and Sonarr so Prowlarr pushes its indexer list to them automatically. (If an indexer sits behind Cloudflare, add FlareSolverr under **Settings → Indexer Proxies** at `http://flaresolverr:8191`.)
+2. **Radarr & Sonarr** - under **Settings → Download Clients**, add **Transmission** with host `transmission` and port `9091`. Set the root folder to `/media/movies` for Radarr and `/media/shows` for Sonarr.
+3. **Jellyfin** (`movies.home.arpa`) - run the setup wizard, add two libraries pointing at `/media/movies` and `/media/shows`, and enable hardware transcoding (VAAPI) so the GPU does the work.
+4. **Seerr** (`seerr.home.arpa`) - connect it to Jellyfin and to Radarr/Sonarr. Now anyone in the house can request a title and watch it appear.
+
+<Note type="HELPFUL">
+
+All these apps reach each other by **container name** on the shared `arr` network - `transmission:9091`, `flaresolverr:8191`, and so on - exactly the pattern from part 3. There are no IP addresses to hardcode, and none of these services need to publish a port to the host; Caddy is the only way in.
+
+</Note>
+
+## Wrapping Up
+
+That's a complete, automated media server: request a film in Seerr, and minutes later it's in Jellyfin, downloaded and filed away without you lifting a finger. It's also the most moving parts we've assembled at once - and they still follow the same template as every other service in this series: one folder, one compose file, a private network plus the shared `reverse-proxy` one, and a handful of Caddy blocks.
+
+As with the rest of the stack, the config directories are runtime data, so keep them out of Git - a `.gitignore` in `~/apps/arr` that ignores `jellyfin`, `radarr`, `sonarr`, `prowlarr`, `seerr`, `huntarr` and `transmission` means you commit the compose file and nothing sensitive.
