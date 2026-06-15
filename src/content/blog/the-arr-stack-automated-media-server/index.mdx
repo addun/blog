@@ -29,13 +29,13 @@ It's the biggest compose file in the series so far, so we'll take it a piece at 
 
 Eight containers cooperate here. It sounds like a lot, but each has one clear job:
 
-- **Prowlarr** - the indexer manager. It knows _where_ to search and feeds that list to everyone else, so you configure your sources in one place.
-- **Radarr** - movies. Watches for films you want, asks Prowlarr to find them, hands the result to the download client, then renames and files the finished movie.
-- **Sonarr** - exactly the same, but for TV shows.
-- **Transmission** - the download client (BitTorrent), the thing that actually fetches files.
-- **Jellyfin** - the media player: the Netflix-style interface you actually watch, with apps for the TV, phone, and browser.
-- **Seerr** - the friendly "request" front-end. Household members search and click "request"; it tells Radarr/Sonarr to go get it.
-- **Huntarr** & **FlareSolverr** - two helpers: Huntarr backfills missing items and quality upgrades, FlareSolverr helps Prowlarr get past Cloudflare on some indexers. Both optional.
+- **[Prowlarr](https://prowlarr.com/)** - the indexer manager. It knows _where_ to search and feeds that list to everyone else, so you configure your sources in one place.
+- **[Radarr](https://radarr.video/)** - movies. Watches for films you want, asks Prowlarr to find them, hands the result to the download client, then renames and files the finished movie.
+- **[Sonarr](https://sonarr.tv/)** - exactly the same, but for TV shows.
+- **[Transmission](https://transmissionbt.com/)** - the download client (BitTorrent), the thing that actually fetches files.
+- **[Jellyfin](https://jellyfin.org/)** - the media player: the Netflix-style interface you actually watch, with apps for the TV, phone, and browser.
+- **[Seerr](https://github.com/seerr-team/seerr)** - the friendly "request" front-end. Household members search and click "request"; it tells Radarr/Sonarr to go get it.
+- **[Huntarr](https://github.com/plexguide/huntarr)** & **[FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)** - two helpers: Huntarr backfills missing items and quality upgrades, FlareSolverr helps Prowlarr get past Cloudflare on some indexers. Both optional.
 
 The flow, end to end: **Seerr** (request) → **Radarr/Sonarr** (decide what's needed) → **Prowlarr** (find it) → **Transmission** (download) → Radarr/Sonarr file it into the library → **Jellyfin** plays it.
 
