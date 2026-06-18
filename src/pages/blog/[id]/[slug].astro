@@ -5,6 +5,7 @@ import { getCollection } from "astro:content";
 import PostIntro from "@components/PostIntro.astro";
 import Donation from "@components/Donation.astro";
 import Comments from "@components/Comments.astro";
+import AboutMe from "@components/AboutMe.astro";
 import GitHubLink from "@components/GitHubLink.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 
@@ -56,6 +57,7 @@ const { Content } = await entry.render();
     </article>
 
     <Donation />
+    <AboutMe />
     <Comments term={id} />
   </main>
 </BaseLayout>
