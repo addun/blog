@@ -27,10 +27,12 @@ import Navbar from "@components/Navbar.astro";
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="profile" href="https://gmpg.org/xfn/11" />
   </head>
-  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900 container mx-auto">
-    <Navbar />
+  <body class="antialiased text-black dark:text-white bg-white dark:bg-slate-900">
+    <div class="container mx-auto">
+      <Navbar />
 
-    <slot />
+      <slot />
+    </div>
 
     <Footer />
     <GTM />
