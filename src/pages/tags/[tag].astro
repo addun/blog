@@ -1,7 +1,7 @@
 ---
 export const prerender = true;
 
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import PostIntroList from "@components/PostIntroList.astro";
 
@@ -10,16 +10,16 @@ export async function getStaticPaths() {
   const blogEntries = await getCollection("blog");
 
   return tagEntries.map((tag) => ({
-    params: { tag: tag.slug },
+    params: { tag: tag.id },
     props: {
       entry: tag,
-      blogEntries: blogEntries.filter((blog) => blog.data.tags.some((blogTag) => blogTag.slug === tag.slug)),
+      blogEntries: blogEntries.filter((blog) => blog.data.tags.some((blogTag) => blogTag.id === tag.id)),
     },
   }));
 }
 
 const { entry, blogEntries } = Astro.props;
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 const { title } = Astro.props.entry.data;
 ---
 

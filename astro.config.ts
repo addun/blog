@@ -28,12 +28,4 @@ export default defineConfig({
   output: "server",
   site: "https://codegen.studio",
   adapter: netlify(),
-  // Astro 5 introduced the Content Layer API. Our collections still use the
-  // legacy `type: "content"` API (with `entry.render()`, `entry.slug`,
-  // `reference()` and `image()`), so keep the legacy behaviour for now.
-  // TODO: migrate to the Content Layer (`glob()` loaders, `render(entry)`,
-  // `entry.id`) and drop this flag.
-  legacy: {
-    collections: true,
-  },
 });

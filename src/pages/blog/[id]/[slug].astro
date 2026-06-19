@@ -1,7 +1,7 @@
 ---
 export const prerender = true;
 
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import PostIntro from "@components/PostIntro.astro";
 import Donation from "@components/Donation.astro";
 import Comments from "@components/Comments.astro";
@@ -15,7 +15,7 @@ export async function getStaticPaths() {
   return blogEntries.map((entry) => ({
     params: {
       id: entry.data.id,
-      slug: entry.slug,
+      slug: entry.id,
     },
     props: { entry },
   }));
@@ -23,7 +23,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { description, thumbnail, title, repository, date, modified, id } = Astro.props.entry.data;
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 ---
 
 <BaseLayout>

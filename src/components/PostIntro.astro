@@ -32,7 +32,7 @@ const publishDate = new Date(date).toLocaleDateString("en-US", {
           {publishDate}
         </span>
 
-        {tags.map((tag) => <PostTag tag={tag.slug} />)}
+        {tags.map((tag) => <PostTag tag={tag.id} />)}
       </div>
     </div>
     <Image src={thumbnail} class="w-full rounded-xl order-1 lg:order-none" alt="" />
