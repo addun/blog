@@ -10,7 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@analogjs/astro-angular": "1.9.4",
+    "@analogjs/astro-angular": "1.14.0",
     "@angular-devkit/build-angular": "19.0.1",
     "@angular/animations": "19.0.0",
     "@angular/cdk": "^19.0.0",
@@ -23,18 +23,18 @@
     "@angular/platform-browser": "19.0.0",
     "@angular/platform-browser-dynamic": "19.0.0",
     "@angular/platform-server": "19.0.0",
-    "@astrojs/check": "^0.9.4",
-    "@astrojs/mdx": "^3.1.9",
-    "@astrojs/netlify": "5.5.4",
-    "@astrojs/partytown": "^2.1.2",
-    "@astrojs/sitemap": "^3.2.1",
-    "@astrojs/tailwind": "^5.1.2",
-    "@expressive-code/plugin-collapsible-sections": "0.38.3",
-    "@expressive-code/plugin-line-numbers": "0.38.3",
+    "@astrojs/check": "^0.9.9",
+    "@astrojs/mdx": "^4.3.14",
+    "@astrojs/netlify": "^6.6.5",
+    "@astrojs/partytown": "^2.1.7",
+    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/tailwind": "^5.1.5",
+    "@expressive-code/plugin-collapsible-sections": "0.43.1",
+    "@expressive-code/plugin-line-numbers": "0.43.1",
     "@tailwindcss/typography": "^0.5.15",
-    "astro": "4.16.14",
-    "astro-expressive-code": "0.38.3",
-    "astro-meta-tags": "^0.3.1",
+    "astro": "5.18.2",
+    "astro-expressive-code": "0.43.1",
+    "astro-meta-tags": "^0.4.1",
     "fuse.js": "^7.0.0",
     "mermaid": "11.15.0",
     "rxjs": "7.8.1",
@@ -46,5 +46,8 @@
   "devDependencies": {
     "prettier": "3.3.3",
     "prettier-plugin-astro": "0.14.1"
+  },
+  "overrides": {
+    "@analogjs/vite-plugin-angular": "1.20.0"
   }
 }
