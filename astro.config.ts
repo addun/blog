@@ -10,10 +10,14 @@ import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { getDarkTheme } from "./integrations/expressive-code";
 import angular from "@analogjs/astro-angular";
+import mermaid from "astro-mermaid";
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [
+    // Must run before Expressive Code so it can transform ```mermaid fences
+    // (and exclude them from syntax highlighting) before EC processes them.
+    mermaid({ theme: "dark" }),
     astroExpressiveCode({
       plugins: [pluginLineNumbers(), pluginCollapsibleSections()],
       themes: [getDarkTheme()],

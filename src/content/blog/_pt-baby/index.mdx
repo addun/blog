@@ -10,7 +10,6 @@ modified: "2026-06-19"
 ---
 
 import Note from "@components/Note.astro";
-import Mermaid from "@components/Mermaid.astro";
 
 ## The Problem
 
@@ -28,8 +27,7 @@ The single most important design decision is that the work is split across **two
 
 In short: long-range, latency-tolerant _control_ travels over Wi-Fi; short-range, bandwidth-heavy _audio_ stays local to the Pi over Bluetooth.
 
-<Mermaid
-  chart={`
+```mermaid
 flowchart TD
     PC["PC — far from the nursery<br/><b>Home Assistant</b><br/>media_player.pt_baby"]
     PI["Raspberry Pi 3 — by the cot<br/><b>MPD</b> (Music Player)<br/>PipeWire / BlueZ"]
@@ -37,8 +35,7 @@ flowchart TD
 
     PC -->|"Wi-Fi LAN (via repeaters → always reachable)<br/>MPD control over TCP :6600"| PI
     PI -->|"Bluetooth Classic — A2DP Sink<br/>short range (Pi sits next to the player)"| SPK
-`}
-/>
+```
 
 ## Step 1: Find the Right Bluetooth Chip
 
