@@ -1,6 +1,6 @@
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
-import tailwind from "@astrojs/tailwind";
+import tailwindcss from "@tailwindcss/vite";
 import netlify from "@astrojs/netlify";
 import sitemap from "@astrojs/sitemap";
 import metaTags from "astro-meta-tags";
@@ -23,12 +23,14 @@ export default defineConfig({
       themes: [getDarkTheme()],
     }),
     mdx(),
-    tailwind(),
     sitemap(),
     metaTags(),
     partytown(),
     angular(),
   ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
   output: "server",
   site: "https://codegen.studio",
   adapter: netlify(),

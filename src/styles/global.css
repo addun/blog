@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Scan all template files for class names (was `content` in tailwind.config.js). */
+@source "../**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}";
+
+/* Dark mode is toggled by setting `data-mode="dark"` on <html> (see BaseLayout). */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+/* Center images inside prose (was theme.extend.typography in tailwind.config.js). */
+.prose img {
+  margin: auto;
+}

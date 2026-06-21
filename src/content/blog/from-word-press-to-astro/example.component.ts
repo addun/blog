@@ -13,7 +13,7 @@ import { Component } from "@angular/core";
         </div>
       }
 
-      <button (click)="toggle()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      <button (click)="toggle()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm">
         {{ show ? "Hide" : "Read more" }}
       </button>
     </div>
