@@ -1,18 +1,14 @@
-import { z, defineCollection, reference } from "astro:content";
+import { defineCollection, reference } from "astro:content";
 import { glob } from "astro/loaders";
-
-// NOTE: this config is plain JavaScript (.mjs) on purpose. As a .ts file it was
-// transformed by the @analogjs/astro-angular Vite plugin during `astro dev`,
-// which broke the Content Layer config loader (collections fell back to
-// auto-generation). A .mjs file bypasses that TypeScript transform.
+import { z } from "astro/zod";
 
 // Reproduce the legacy collection id so URLs are unchanged by the Content Layer
 // migration. Legacy precedence: an explicit `slug` frontmatter field wins;
 // otherwise the file path relative to the base, with the extension stripped and
 // `<dir>/index` collapsed to `<dir>`. `data` here is the unvalidated frontmatter
 // (the `slug` key isn't in the schema, so it's dropped from the final entry).
-const fileSlug = (entry) => entry.replace(/\.(md|mdx)$/, "").replace(/\/index$/, "");
-const legacyId = ({ entry, data }) =>
+const fileSlug = (entry: string) => entry.replace(/\.(md|mdx)$/, "").replace(/\/index$/, "");
+const legacyId = ({ entry, data }: { entry: string; data: Record<string, unknown> }) =>
   typeof data.slug === "string" && data.slug.length > 0 ? data.slug : fileSlug(entry);
 
 // A custom `pattern` replaces the loader's built-in defaults, including its
