@@ -52,32 +52,7 @@ We bypass the app chip entirely and target the audio MAC for everything that fol
 
 </Note>
 
-## Step 2: Unblock and Reset the Pi's Bluetooth
-
-Pairing from the Pi's terminal walks straight into a wall of `bluetoothctl` errors. They're all OS-level, and you clear them by working down the stack.
-
-First, the soft block. `Failed to start discovery: org.bluez.Error.NotReady` usually means the kernel has software-locked the adapter. Check with `rfkill list`, then unblock it:
-
-```bash
-sudo rfkill unblock bluetooth
-```
-
-Next, the state lock. `org.bluez.Error.InProgress` is a deadlock on the Pi 3's Broadcom chip, often triggered when something else (like a Home Assistant Bluetooth integration) scans at the same time. Tear the interface down and reload the Pi's serial firmware controller:
-
-```bash
-sudo systemctl stop bluetooth
-sudo hciconfig hci0 down && sudo hciconfig hci0 up
-sudo systemctl restart hciuart
-sudo systemctl start bluetooth
-```
-
-<Note type="IMPORTANT">
-
-If the adapter keeps dropping into `InProgress`, make sure **nothing else is scanning**. On this setup Home Assistant lives on a separate PC, so it isn't fighting the Pi for the radio - but a stray `bluetoothctl scan on` in another terminal will do it just as well.
-
-</Note>
-
-## Step 3: Pair Directly by MAC
+## Step 2: Pair Directly by MAC
 
 Auto-scan is unreliable on this chip, so skip discovery entirely. Since we already know the audio MAC, pair and trust it directly:
 
@@ -91,7 +66,7 @@ bluetoothctl
 
 `trust` is the part that matters for a headless setup - it lets the Pi re-establish the link later without anyone confirming a prompt.
 
-## Step 4: Run MPD in User-Space, Next to PipeWire
+## Step 3: Run MPD in User-Space, Next to PipeWire
 
 Modern Raspberry Pi OS uses **PipeWire** as its audio engine, and PipeWire isolates Bluetooth audio to the **logged-in user** (`pi`). A system-wide MPD daemon runs as its own user and can't see that session's Bluetooth sink - so instead of fighting permissions, we run MPD as the same user.
 
@@ -123,7 +98,7 @@ Because MPD now runs inside the `pi` session alongside PipeWire, it picks up the
 
 </Note>
 
-## Step 5: Keep the Connection Alive
+## Step 4: Keep the Connection Alive
 
 Bluetooth speakers drop the link aggressively when idle to save power. So the moment Home Assistant tries to play something, the cradle is usually asleep and the audio fails.
 
@@ -147,7 +122,7 @@ ExecStartPre=/usr/local/bin/connect_baby.sh
 
 Now every time MPD starts playback, Linux wakes and stabilises the Bluetooth pipe first - so the cradle never misses the opening notes.
 
-## Step 6: Add It to Home Assistant
+## Step 5: Add It to Home Assistant
 
 Home Assistant dropped YAML config for MPD, so this is all done through the UI - on the **PC**, pointing across the network at the Pi:
 
@@ -155,7 +130,7 @@ Home Assistant dropped YAML config for MPD, so this is all done through the UI -
 2. Choose **Music Player Daemon (MPD)**.
 3. Set **Host** to the Pi's IP address and **Port** to `6600`.
 
-That gives you a `media_player.pt_baby_speaker` entity. From there it's a normal media player, ready for automations - for example: _if the crib sensor detects crying for more than 60 seconds between 8 PM and 4 AM, wake the speaker, confirm the connection, and play a soft lullaby._
+That gives you a `media_player.pt_baby` entity. From there it's a normal media player, ready for automations - for example: _if the crib sensor detects crying for more than 60 seconds between 8 PM and 4 AM, wake the speaker, confirm the connection, and play a soft lullaby._
 
 <Note type="IMPORTANT">
 

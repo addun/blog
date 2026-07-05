@@ -106,7 +106,7 @@
 
   <!-- Subtitle -->
   <text x="80" y="432" font-family="Arial, sans-serif" font-size="32" fill="#a0aec0">
-    Smart home &#183; Bluetooth + MPD on a Raspberry Pi
+    Bluetooth + MPD on a Raspberry Pi
   </text>
 
   <!-- Decorative elements -->
