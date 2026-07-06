@@ -37,6 +37,12 @@ flowchart TD
     PI -->|"Bluetooth Classic — A2DP Sink<br/>short range (Pi sits next to the player)"| SPK
 ```
 
+<Note type="HELPFUL">
+
+**You don't need a Raspberry Pi for this.** An **ESP32 running [ESPHome](https://esphome.io/)** can act as the same near-cradle bridge for a few dollars - it speaks A2DP over Classic Bluetooth and exposes a `media_player` straight to Home Assistant, no MPD or Wi-Fi hop required. That's the cheaper, lower-power option if you're buying hardware. I just happened to have a Raspberry Pi 3 sitting idle, so I used it - the rest of this guide follows the Pi path.
+
+</Note>
+
 ## Step 1: Find the Right Bluetooth Chip
 
 The first surprise is that the PT-BABY shows up as **two** Bluetooth devices, because it has a dual-chip design sharing one antenna:
