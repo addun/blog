@@ -1,60 +1,59 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
   <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#1a202c;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#68d391;stop-opacity:0.35" />
+    <linearGradient id="serverGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#68d391;stop-opacity:0.3" />
       <stop offset="100%" style="stop-color:#68d391;stop-opacity:0" />
     </linearGradient>
   </defs>
 
   <rect width="1200" height="630" fill="url(#bgGradient)"/>
 
-  <g opacity="0.04">
-    <path d="M 0 0 L 1200 0 L 1200 630 L 0 630 Z" fill="none" stroke="#ffffff" stroke-width="1"/>
-    <g stroke="#ffffff" stroke-width="1">
-      <line x1="0" y1="105" x2="1200" y2="105"/>
-      <line x1="0" y1="210" x2="1200" y2="210"/>
-      <line x1="0" y1="315" x2="1200" y2="315"/>
-      <line x1="0" y1="420" x2="1200" y2="420"/>
-      <line x1="0" y1="525" x2="1200" y2="525"/>
-      <line x1="200" y1="0" x2="200" y2="630"/>
-      <line x1="400" y1="0" x2="400" y2="630"/>
-      <line x1="600" y1="0" x2="600" y2="630"/>
-      <line x1="800" y1="0" x2="800" y2="630"/>
-      <line x1="1000" y1="0" x2="1000" y2="630"/>
-    </g>
+  <!-- Home + VPS illustration -->
+  <g transform="translate(810, 160)">
+    <rect x="-15" y="-15" width="330" height="330" fill="url(#serverGlow)" rx="20"/>
+
+    <!-- VPS box -->
+    <rect x="0" y="0" width="300" height="140" fill="#22543d" stroke="#68d391" stroke-width="4" rx="12"/>
+    <circle cx="30" cy="35" r="8" fill="#68d391"/>
+    <circle cx="55" cy="35" r="8" fill="#68d391"/>
+    <rect x="80" y="22" width="180" height="8" fill="#1a202c" rx="3"/>
+    <rect x="80" y="38" width="140" height="8" fill="#1a202c" rx="3"/>
+    <text x="30" y="100" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#c6f6d5">VPS</text>
+    <circle cx="255" cy="90" r="20" fill="#1a202c"/>
+    <path d="M255 80 a10 10 0 0 0 -10 10 v4 h20 v-4 a10 10 0 0 0 -10 -10 z" fill="none" stroke="#68d391" stroke-width="3"/>
+    <rect x="245" y="94" width="20" height="16" rx="3" fill="none" stroke="#68d391" stroke-width="3"/>
+
+    <!-- tunnel line down to home -->
+    <line x1="150" y1="140" x2="150" y2="200" stroke="#68d391" stroke-width="4" stroke-dasharray="8 8"/>
+
+    <!-- Home box -->
+    <rect x="0" y="200" width="300" height="110" fill="#2c3e50" stroke="#4299e1" stroke-width="4" rx="12"/>
+    <path d="M40 260 L70 235 L100 260 L100 295 L82 295 L82 272 L58 272 L58 295 L40 295 Z"
+          fill="#4299e1" stroke="#63b3ed" stroke-width="2" stroke-linejoin="round"/>
+    <text x="130" y="270" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#bee3f8">Home</text>
+    <text x="130" y="296" font-family="Arial, sans-serif" font-size="16" fill="#90cdf4">no public IP needed</text>
   </g>
 
-  <rect x="120" y="200" width="960" height="230" fill="url(#glow)"/>
+  <!-- Title -->
+  <text x="80" y="192" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#ffffff">
+    Exposing a Home Lab
+  </text>
+  <text x="80" y="258" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#68d391">
+    to the Internet
+  </text>
 
-  <!-- home box -->
-  <rect x="150" y="250" width="230" height="130" rx="12" fill="#2c3e50" stroke="#4299e1" stroke-width="3"/>
-  <text x="265" y="305" fill="#e2e8f0" font-size="26" text-anchor="middle" font-family="Verdana, sans-serif" font-weight="bold">Home</text>
-  <text x="265" y="336" fill="#90cdf4" font-size="16" text-anchor="middle" font-family="Verdana, sans-serif">no public IP</text>
+  <!-- Subtitle -->
+  <text x="80" y="340" font-family="Arial, sans-serif" font-size="30" fill="#a0aec0">
+    A $2/month VPS and a reverse SSH tunnel
+  </text>
 
-  <!-- tunnel -->
-  <line x1="380" y1="315" x2="540" y2="315" stroke="#68d391" stroke-width="4" stroke-dasharray="10 8"/>
-  <path d="M540 315 L520 305 M540 315 L520 325" stroke="#68d391" stroke-width="4" fill="none"/>
-  <text x="460" y="290" fill="#9ae6b4" font-size="15" text-anchor="middle" font-family="Verdana, sans-serif">SSH tunnel</text>
-
-  <!-- vps box -->
-  <rect x="550" y="235" width="240" height="160" rx="12" fill="#22543d" stroke="#68d391" stroke-width="3"/>
-  <text x="670" y="290" fill="#f0fff4" font-size="26" text-anchor="middle" font-family="Verdana, sans-serif" font-weight="bold">VPS</text>
-  <text x="670" y="320" fill="#9ae6b4" font-size="16" text-anchor="middle" font-family="Verdana, sans-serif">$2/month</text>
-  <text x="670" y="345" fill="#9ae6b4" font-size="16" text-anchor="middle" font-family="Verdana, sans-serif">public IP + TLS</text>
-
-  <!-- internet -->
-  <line x1="790" y1="315" x2="950" y2="315" stroke="#f6ad55" stroke-width="4"/>
-  <path d="M950 315 L930 305 M950 315 L930 325" stroke="#f6ad55" stroke-width="4" fill="none"/>
-
-  <circle cx="1010" cy="315" r="55" fill="#7b341e" stroke="#f6ad55" stroke-width="3"/>
-  <text x="1010" y="322" fill="#fbd38d" font-size="17" text-anchor="middle" font-family="Verdana, sans-serif" font-weight="bold">World</text>
-
-  <text x="600" y="130" fill="#f7fafc" font-size="42" text-anchor="middle" font-family="Verdana, sans-serif" font-weight="bold">Home Lab on the Internet</text>
-  <text x="600" y="175" fill="#a0aec0" font-size="22" text-anchor="middle" font-family="Verdana, sans-serif">via a cheap VPS reverse tunnel - no Cloudflare in the middle</text>
-
-  <text x="600" y="560" fill="#68d391" font-size="18" text-anchor="middle" font-family="Verdana, sans-serif">autossh + Caddy + your own domain</text>
+  <!-- Decorative elements -->
+  <circle cx="1100" cy="550" r="40" fill="#4299e1" opacity="0.1"/>
+  <circle cx="150" cy="80" r="30" fill="#68d391" opacity="0.1"/>
+  <circle cx="1050" cy="450" r="25" fill="#f6ad55" opacity="0.1"/>
 </svg>

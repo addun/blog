@@ -21,14 +21,18 @@ The home server sits behind a router with no public IP (or a CGNAT one your ISP 
 
 There are basically four ways to solve this:
 
-1. **Port forwarding + dynamic DNS** - simplest, but it means your home router is directly reachable from the entire internet and your real home IP is public.
-2. **A static public IP from your ISP** - works, but rarely worth the price (more on that below).
+1. **Port forwarding + dynamic DNS** - your router doesn't know where to send inbound packets unless you tell it, so you forward ports 80/443 to the home server and use a dynamic DNS service to track your changing public IP. Simplest option, but it means your home router is directly reachable from the entire internet and your real home IP is public.
+2. **A static public IP from your ISP** - works, and removes the dynamic DNS problem, but it's usually not worth the price - a VPS is often cheaper (more on that below).
 3. **Cloudflare Tunnel** (or similar) - free, zero-config, but every byte of your traffic is decrypted and re-encrypted by Cloudflare in the middle.
 4. **A cheap VPS + reverse SSH tunnel** - a few dollars a month, no inbound ports on the home router at all, and no third party sees your plaintext traffic.
 
 This post covers option 4 end-to-end: the actual setup running on my own home lab, plus why I ruled out the other three.
 
 ![Architecture: visitor connects to the VPS over HTTPS, the VPS forwards it down a reverse SSH tunnel to the home server, which routes it to the right container](./architecture.svg)
+
+<Note type="HELPFUL">
+The home server never accepts inbound connections from the internet - it dials out to the VPS and keeps that connection open. The VPS only forwards traffic back down the same tunnel it already trusts. Nobody outside can reach the home network directly: no port forwarding on the router, no CGNAT/dynamic-IP problems, and the real home IP is never revealed to a visitor or to any third-party proxy service. Compare to Cloudflare Tunnel: same trick, but the middlebox also terminates TLS and sees plaintext traffic.
+</Note>
 
 ## Why not a static IP from the ISP
 
@@ -91,7 +95,14 @@ autossh -M 0 -N -o ExitOnForwardFailure=yes \
 
 - `-R 127.0.0.1:8080:127.0.0.1:80` - anything hitting `127.0.0.1:8080` **on the VPS** gets forwarded through the tunnel to `127.0.0.1:80` **on the home server** (the local Caddy instance).
 - `-R 127.0.0.1:2053:127.0.0.1:53` - same idea for DNS: VPS port 2053 forwards to the home server's port 53 (AdGuard Home).
-- Binding to `127.0.0.1` on the VPS side means these forwarded ports are **not** reachable directly from the internet - only from something else running locally on the VPS (Caddy, in the next step).
+
+<Note type="HELPFUL">
+Binding to `127.0.0.1` on the VPS side means these forwarded ports are **not** reachable directly from the internet - only from something else running locally on the VPS (Caddy, in the next step).
+</Note>
+
+<Note type="HELPFUL">
+The second forward (port 53/2053) is only needed if you run AdGuard Home (or similar) and want to reach your own private, ad-blocking DNS resolver from outside your home network too. If you're happy using your ISP's or a public DNS resolver while away from home, skip it - the setup below works for HTTP(S) alone.
+</Note>
 
 Wrapped in a systemd unit so it survives reboots and reconnects on failure:
 
@@ -127,7 +138,7 @@ sudo systemctl enable --now ssh-vps-forward.service
 The `ExecStartPre` checks matter more than they look. If Caddy or AdGuard Home restarts (updates, reboot, crash) after autossh has already connected, the tunnel keeps running but forwards into a dead port until autossh itself is restarted. Building in an explicit dependency, or at minimum ordering the tunnel's `After=` on the containers, saves a confusing "site down but tunnel looks fine" debugging session.
 </Note>
 
-### 4. Caddy on the VPS - the public-facing hop
+### 4. Caddy on the VPS
 
 The VPS needs something listening on 80/443 to grab a real TLS certificate and forward decrypted traffic into the tunnel. A stock Caddy build does the HTTP(S) part; getting DNS-over-TLS through the same box needs the `caddy-l4` plugin, so this is a small custom build:
 
@@ -166,9 +177,11 @@ yourdomain.com, *.yourdomain.com {
 
 That's it on the VPS side: automatic HTTPS certs for the domain and every subdomain, all forwarded down the tunnel to port 8080, which autossh is already piping to the home server's port 80. Port 853 does the same for DNS-over-TLS, using Caddy's layer4 module to inspect the TLS SNI and route it to the forwarded DNS port instead.
 
-### 5. Caddy on the home server - routing to the right container
+### 5. Caddy on the home server
 
-The VPS doesn't know or care what's running at home - it just blindly forwards to port 80. The actual routing by subdomain happens on the home server's own Caddy instance, which was probably already running there for local `.home.arpa` domains:
+The VPS doesn't know or care what's running at home - it just blindly forwards to port 80. The actual routing by subdomain happens on the home server's own Caddy instance, which was probably already running there for local `.home.arpa` domains.
+
+So the full chain for one request looks like: **Caddy on the VPS (public, terminates TLS)** → SSH tunnel → **Caddy on the home server (private, per-subdomain routing)** → **the actual service** (Immich, Jellyfin, Home Assistant, ...). The VPS only ever sees "forward everything to port 8080"; the home Caddy is the one deciding which container each subdomain actually goes to:
 
 ```
 http://*.yourdomain.com, http://yourdomain.com {
@@ -197,8 +210,6 @@ http://*.yourdomain.com, http://yourdomain.com {
 }
 ```
 
-One reverse-proxy hop on the VPS (public, TLS-terminating), one more on the home server (private, per-service routing). Two hops, but the second one never leaves the LAN.
-
 <Note type="HELPFUL">
 Layer for CrowdSec on the home-side Caddy if you want automated IP banning based on log patterns (bad logins, path scanning, known CVE probes). It reads Caddy's access log and can block offenders before they reach anything behind it - cheap insurance since the VPS is the one absorbing internet-wide scanner noise all day.
 </Note>
@@ -214,13 +225,17 @@ A     *.yourdomain.com        -> VPS_PUBLIC_IP
 
 A wildcard `A` record means every subdomain (`photos.`, `movies.`, `assistant.`, ...) resolves to the same VPS IP, and Caddy on the VPS handles routing per-hostname from there. No DNS changes needed when adding a new service - just add a new `handle` block on the home Caddy config.
 
-## Bonus: the same VPS as a whole-home VPN
+## Using the same VPS as a VPN
 
-Once you're renting a VPS anyway, it can double as an exit node for your whole home network - not just for exposing services inbound, but for routing outbound traffic too. Put WireGuard on it, connect your router (or individual devices) as clients, and every packet leaving your home network appears to come from the VPS's public IP and location instead.
+The same VPS can also double as an exit node for your whole home network's outbound traffic, not just for exposing services inbound. Put WireGuard on it and connect your router (or individual devices) as clients - every packet leaving your home network then appears to come from the VPS's public IP and location instead.
 
 ![A home network in Poland connects over WireGuard to a VPS in the US; from any website's point of view, the traffic originates in the US](./vpn-routing.svg)
 
-This is genuinely useful if the VPS happens to be in a different country than you: rent it in the US, and your whole household's traffic can look like it's coming from the US - useful for region-locked content or just for not leaking your home country/ISP to every site you visit. It costs nothing extra since it's the same box already paying for itself as the reverse-tunnel endpoint.
+<Note type="HELPFUL">
+Pick the VPS region to match what you need: a US region gets you a US exit IP for the whole home network, a cheap local region keeps latency low for the reverse tunnel. Nothing stops running both roles - reverse tunnel for inbound services, WireGuard for outbound browsing - on the very same VPS.
+</Note>
+
+I'll cover the actual WireGuard setup in a separate post.
 
 ## Wrapping up
 
