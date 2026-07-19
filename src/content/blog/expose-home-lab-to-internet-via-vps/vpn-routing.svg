@@ -1,0 +1,50 @@
+<svg width="1200" height="480" viewBox="0 0 1200 480" xmlns="http://www.w3.org/2000/svg" font-family="Verdana, Segoe UI, sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a202c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#f6ad55" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="480" fill="url(#bg2)"/>
+
+  <text x="600" y="46" fill="#f7fafc" font-size="24" font-weight="bold" text-anchor="middle">Bonus: the same VPS doubles as a whole-home VPN</text>
+
+  <!-- home devices -->
+  <rect x="40" y="150" width="220" height="140" rx="10" fill="#2d3748" stroke="#4a5568" stroke-width="2"/>
+  <text x="150" y="182" fill="#f7fafc" font-size="17" text-anchor="middle" font-weight="bold">Home network</text>
+  <text x="150" y="204" fill="#a0aec0" font-size="13" text-anchor="middle">router / phones / laptops</text>
+  <text x="150" y="226" fill="#a0aec0" font-size="13" text-anchor="middle">location: Poland (PL)</text>
+  <text x="150" y="252" fill="#f6ad55" font-size="13" text-anchor="middle" font-weight="bold">WireGuard client</text>
+
+  <!-- VPS -->
+  <rect x="480" y="130" width="260" height="180" rx="10" fill="#7b341e" stroke="#f6ad55" stroke-width="2"/>
+  <text x="610" y="162" fill="#f7fafc" font-size="17" text-anchor="middle" font-weight="bold">VPS in the US</text>
+  <text x="610" y="188" fill="#fbd38d" font-size="13" text-anchor="middle">WireGuard server</text>
+  <text x="610" y="208" fill="#fbd38d" font-size="13" text-anchor="middle">NAT's all client traffic</text>
+  <text x="610" y="228" fill="#fbd38d" font-size="13" text-anchor="middle">out through its own public IP</text>
+  <text x="610" y="254" fill="#fbd38d" font-size="12" text-anchor="middle">same box already used for</text>
+  <text x="610" y="270" fill="#fbd38d" font-size="12" text-anchor="middle">the reverse SSH tunnel</text>
+  <text x="610" y="290" fill="#fbd38d" font-size="12" text-anchor="middle">no extra VPS needed</text>
+
+  <!-- Internet -->
+  <rect x="960" y="150" width="200" height="140" rx="10" fill="#2d3748" stroke="#4a5568" stroke-width="2"/>
+  <text x="1060" y="182" fill="#f7fafc" font-size="17" text-anchor="middle" font-weight="bold">Any website</text>
+  <text x="1060" y="204" fill="#a0aec0" font-size="13" text-anchor="middle">sees traffic arriving</text>
+  <text x="1060" y="226" fill="#a0aec0" font-size="13" text-anchor="middle">from a US IP address,</text>
+  <text x="1060" y="248" fill="#a0aec0" font-size="13" text-anchor="middle">not from Poland</text>
+
+  <line x1="260" y1="220" x2="475" y2="220" stroke="#f6ad55" stroke-width="2.5" marker-end="url(#arrow2)"/>
+  <text x="367" y="205" fill="#fbd38d" font-size="12" text-anchor="middle">encrypted WG tunnel</text>
+
+  <line x1="740" y1="220" x2="955" y2="220" stroke="#f6ad55" stroke-width="2.5" marker-end="url(#arrow2)"/>
+  <text x="847" y="205" fill="#fbd38d" font-size="12" text-anchor="middle">plain internet traffic</text>
+
+  <rect x="40" y="350" width="1120" height="100" rx="10" fill="#2d3748" stroke="#4a5568" stroke-width="1.5"/>
+  <text x="60" y="382" fill="#cbd5e0" font-size="13.5">Pick the VPS region to match what you need: a US region gets you a US exit IP for the whole home network,</text>
+  <text x="60" y="406" fill="#cbd5e0" font-size="13.5">a cheap local (PL) region keeps latency low for the reverse tunnel. Nothing stops running both roles - reverse</text>
+  <text x="60" y="428" fill="#cbd5e0" font-size="13.5">tunnel for inbound services, WireGuard for outbound browsing - on the very same VPS.</text>
+</svg>

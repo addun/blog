@@ -1,0 +1,66 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" font-family="Verdana, Segoe UI, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a202c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#68d391" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="720" fill="url(#bg)"/>
+
+  <text x="600" y="46" fill="#f7fafc" font-size="26" font-weight="bold" text-anchor="middle">HTTP(S) reaching a home lab through a cheap VPS</text>
+
+  <!-- Visitor -->
+  <rect x="40" y="120" width="200" height="90" rx="10" fill="#2d3748" stroke="#4a5568" stroke-width="2"/>
+  <text x="140" y="155" fill="#f7fafc" font-size="18" text-anchor="middle" font-weight="bold">Visitor</text>
+  <text x="140" y="178" fill="#a0aec0" font-size="13" text-anchor="middle">browser / phone</text>
+  <text x="140" y="196" fill="#a0aec0" font-size="13" text-anchor="middle">anywhere on the internet</text>
+
+  <!-- VPS -->
+  <rect x="420" y="90" width="340" height="180" rx="10" fill="#22543d" stroke="#68d391" stroke-width="2"/>
+  <text x="590" y="122" fill="#f7fafc" font-size="18" text-anchor="middle" font-weight="bold">Cheap VPS (public IP)</text>
+  <text x="590" y="148" fill="#c6f6d5" font-size="13" text-anchor="middle">Caddy :80 / :443</text>
+  <text x="590" y="168" fill="#c6f6d5" font-size="13" text-anchor="middle">automatic Let's Encrypt cert</text>
+  <text x="590" y="188" fill="#c6f6d5" font-size="13" text-anchor="middle">reverse_proxy 127.0.0.1:8080</text>
+  <text x="590" y="208" fill="#c6f6d5" font-size="13" text-anchor="middle">layer4 :853 -&gt; 127.0.0.1:2053 (DoT)</text>
+  <text x="590" y="230" fill="#68d391" font-size="12" text-anchor="middle">sshd listening on :22</text>
+  <text x="590" y="250" fill="#68d391" font-size="12" text-anchor="middle">only ports 22 / 80 / 443 / 853 exposed</text>
+
+  <!-- Home server -->
+  <rect x="900" y="80" width="260" height="330" rx="10" fill="#2c3e50" stroke="#4299e1" stroke-width="2"/>
+  <text x="1030" y="112" fill="#f7fafc" font-size="18" text-anchor="middle" font-weight="bold">Home server</text>
+  <text x="1030" y="132" fill="#bee3f8" font-size="12" text-anchor="middle">behind NAT, no public IP</text>
+  <text x="1030" y="158" fill="#bee3f8" font-size="13" text-anchor="middle">autossh -R 8080:80</text>
+  <text x="1030" y="176" fill="#bee3f8" font-size="13" text-anchor="middle">-R 2053:53</text>
+  <rect x="920" y="196" width="220" height="34" rx="6" fill="#1a365d"/>
+  <text x="1030" y="218" fill="#e2e8f0" font-size="13" text-anchor="middle">Caddy :80 (per-domain routing)</text>
+  <rect x="920" y="240" width="220" height="34" rx="6" fill="#1a365d"/>
+  <text x="1030" y="262" fill="#e2e8f0" font-size="13" text-anchor="middle">AdGuard Home :53 (DNS)</text>
+  <rect x="920" y="284" width="220" height="34" rx="6" fill="#1a365d"/>
+  <text x="1030" y="306" fill="#e2e8f0" font-size="13" text-anchor="middle">Immich / Jellyfin / HA / ...</text>
+  <rect x="920" y="328" width="220" height="34" rx="6" fill="#1a365d"/>
+  <text x="1030" y="350" fill="#e2e8f0" font-size="13" text-anchor="middle">CrowdSec (blocks bad IPs)</text>
+  <text x="1030" y="392" fill="#63b3ed" font-size="12" text-anchor="middle">no inbound ports opened</text>
+  <text x="1030" y="408" fill="#63b3ed" font-size="12" text-anchor="middle">on the home router</text>
+
+  <!-- Arrows -->
+  <line x1="240" y1="165" x2="415" y2="165" stroke="#68d391" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="325" y="150" fill="#c6f6d5" font-size="13" text-anchor="middle">HTTPS to yourdomain.com</text>
+
+  <line x1="760" y1="180" x2="895" y2="180" stroke="#63b3ed" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="895" y1="200" x2="760" y2="200" stroke="#63b3ed" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="828" y="163" fill="#bee3f8" font-size="12" text-anchor="middle">reverse SSH</text>
+  <text x="828" y="220" fill="#bee3f8" font-size="12" text-anchor="middle">tunnel (autossh)</text>
+
+  <!-- Bottom note -->
+  <rect x="40" y="480" width="1120" height="180" rx="10" fill="#2d3748" stroke="#4a5568" stroke-width="1.5"/>
+  <text x="60" y="512" fill="#f7fafc" font-size="16" font-weight="bold">Why this direction matters</text>
+  <text x="60" y="542" fill="#cbd5e0" font-size="13.5">The home server never accepts inbound connections from the internet - it dials OUT to the VPS and keeps that</text>
+  <text x="60" y="564" fill="#cbd5e0" font-size="13.5">connection open. The VPS only forwards traffic back down the same tunnel it already trusts. Nobody outside can</text>
+  <text x="60" y="586" fill="#cbd5e0" font-size="13.5">reach the home network directly, no port forwarding on the router, no CGNAT / dynamic-IP problems, and the</text>
+  <text x="60" y="608" fill="#cbd5e0" font-size="13.5">real home IP address is never revealed to a visitor or to any third-party proxy service.</text>
+  <text x="60" y="638" fill="#68d391" font-size="13.5" font-weight="bold">Compare to Cloudflare Tunnel: same trick, but the middlebox also terminates TLS and sees plaintext traffic.</text>
+</svg>

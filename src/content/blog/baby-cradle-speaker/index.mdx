@@ -13,9 +13,13 @@ import Note from "@components/Note.astro";
 
 ## The Problem
 
-Out of the box, playing a lullaby is a chore. I have to grab my phone, connect it to the cradle over Bluetooth, start the track - and then **leave the phone sitting next to the cot**, because the moment it wanders out of range the connection drops and the music stops. So the one device I actually want in my pocket is stuck babysitting the speaker.
+I wanted to play a lullaby from my phone through the speaker by the crib. Hit play, walked out of the room... and only a few steps later realized the music was streaming over Bluetooth. The moment I left range, the connection dropped and the lullaby stopped with it.
 
-What I really want is to fire off a lullaby **without** parking my phone by the crib: trigger it from anywhere - a wall tablet, a voice command, or an automation - and have it play reliably from a device that lives next to the cradle full-time. That's exactly what the setup below delivers.
+So I figured: what if the speaker just ran over Wi-Fi instead?
+
+That's how this thing was born:
+
+**Home Assistant → Wi-Fi → Raspberry Pi → Bluetooth → BT Speaker**
 
 ## How It Fits Together (Two Devices, One Wi-Fi)
 
