@@ -1,7 +1,7 @@
 ---
 id: hL3vps
 title: "Exposing a Home Lab to the Internet with a $2/month VPS"
-description: How to publish self-hosted services running on a home server to the public internet using a cheap VPS and a reverse SSH tunnel - no port forwarding, no static IP, no Cloudflare in the middle. Covers the systemd/autossh setup, the double-hop Caddy config, DNS-over-TLS, buying a domain, why a static IP from your ISP usually isn't worth it, and using the same VPS as a whole-home VPN.
+description: How to publish self-hosted services running on a home server to the public internet using a cheap VPS and a reverse SSH tunnel - no port forwarding, no static IP, no Cloudflare in the middle. Covers the systemd/autossh setup, the double-hop Caddy config, buying a domain, why a static IP from your ISP usually isn't worth it, and using the same VPS as a whole-home VPN.
 tags:
   - home-lab
   - networking
@@ -43,7 +43,7 @@ I don't recommend it, for two reasons:
 - **Price.** Depending on the ISP, a static IP add-on runs anywhere from a few dollars a month to significantly more than an entire VPS costs - for strictly less functionality than the VPS gives you.
 - **Safety.** With a static ISP IP, your home router is the thing directly facing the internet. Every port you open is a port an attacker can probe against your actual home network. With the VPS approach, the VPS is the thing facing the internet - it's disposable, isolated, and if it gets compromised, the attacker is still on the other side of an SSH tunnel from your home LAN, not on your LAN itself.
 
-The only case where a static ISP IP makes sense is if you specifically need a stable IP for something that can't tolerate a middlebox at all (e.g. certain VoIP/SIP setups). For serving web apps and DNS, the VPS wins on both price and blast radius.
+The only case where a static ISP IP makes sense is if you specifically need a stable IP for something that can't tolerate a middlebox at all (e.g. certain VoIP/SIP setups). For serving web apps, the VPS wins on both price and blast radius.
 
 ## Why not Cloudflare Tunnel
 
@@ -84,24 +84,18 @@ Host vps
 
 ### 3. The reverse tunnel itself
 
-This is the actual trick, and it's just one line of `autossh`: the home server opens an outbound SSH connection to the VPS and asks the VPS to forward two of *its own* ports back down that same connection.
+This is the actual trick, and it's just one line of `autossh`: the home server opens an outbound SSH connection to the VPS and asks the VPS to forward one of *its own* ports back down that same connection.
 
 ```
 autossh -M 0 -N -o ExitOnForwardFailure=yes \
   -R 127.0.0.1:8080:127.0.0.1:80 \
-  -R 127.0.0.1:2053:127.0.0.1:53 \
   vps
 ```
 
-- `-R 127.0.0.1:8080:127.0.0.1:80` - anything hitting `127.0.0.1:8080` **on the VPS** gets forwarded through the tunnel to `127.0.0.1:80` **on the home server** (the local Caddy instance).
-- `-R 127.0.0.1:2053:127.0.0.1:53` - same idea for DNS: VPS port 2053 forwards to the home server's port 53 (AdGuard Home).
+`-R 127.0.0.1:8080:127.0.0.1:80` - anything hitting `127.0.0.1:8080` **on the VPS** gets forwarded through the tunnel to `127.0.0.1:80` **on the home server** (the local Caddy instance).
 
 <Note type="HELPFUL">
-Binding to `127.0.0.1` on the VPS side means these forwarded ports are **not** reachable directly from the internet - only from something else running locally on the VPS (Caddy, in the next step).
-</Note>
-
-<Note type="HELPFUL">
-The second forward (port 53/2053) is only needed if you run AdGuard Home (or similar) and want to reach your own private, ad-blocking DNS resolver from outside your home network too. If you're happy using your ISP's or a public DNS resolver while away from home, skip it - the setup below works for HTTP(S) alone.
+Binding to `127.0.0.1` on the VPS side means the forwarded port is **not** reachable directly from the internet - only from something else running locally on the VPS (Caddy, in the next step).
 </Note>
 
 Wrapped in a systemd unit so it survives reboots and reconnects on failure:
@@ -114,13 +108,11 @@ After=network-online.target
 
 [Service]
 User=youruser
-# wait for the local web server and DNS server to actually be up
+# wait for the local web server to actually be up
 # before dialing out, otherwise autossh forwards to nothing
 ExecStartPre=/usr/bin/bash -c 'until ss -ltn sport = :80; do sleep 2; done'
-ExecStartPre=/usr/bin/bash -c 'until ss -lun sport = :53; do sleep 2; done'
 ExecStart=/usr/bin/autossh -M 0 -N -o ExitOnForwardFailure=yes \
   -R 127.0.0.1:8080:127.0.0.1:80 \
-  -R 127.0.0.1:2053:127.0.0.1:53 \
   vps
 Restart=always
 RestartSec=5
@@ -135,47 +127,24 @@ sudo systemctl enable --now ssh-vps-forward.service
 ```
 
 <Note type="IMPORTANT">
-The `ExecStartPre` checks matter more than they look. If Caddy or AdGuard Home restarts (updates, reboot, crash) after autossh has already connected, the tunnel keeps running but forwards into a dead port until autossh itself is restarted. Building in an explicit dependency, or at minimum ordering the tunnel's `After=` on the containers, saves a confusing "site down but tunnel looks fine" debugging session.
+The `ExecStartPre` check matters more than it looks. If Caddy restarts (updates, reboot, crash) after autossh has already connected, the tunnel keeps running but forwards into a dead port until autossh itself is restarted. Building in an explicit dependency, or at minimum ordering the tunnel's `After=` on the container, saves a confusing "site down but tunnel looks fine" debugging session.
 </Note>
 
 ### 4. Caddy on the VPS
 
-The VPS needs something listening on 80/443 to grab a real TLS certificate and forward decrypted traffic into the tunnel. A stock Caddy build does the HTTP(S) part; getting DNS-over-TLS through the same box needs the `caddy-l4` plugin, so this is a small custom build:
-
-```dockerfile
-FROM caddy:2.11.2-builder AS builder
-RUN xcaddy build \
-    --with github.com/mholt/caddy-l4
-
-FROM caddy:2.11.2
-COPY --from=builder /usr/bin/caddy /usr/bin/caddy
-```
-
-And the `Caddyfile` on the VPS:
+The VPS needs something listening on 80/443 to grab a real TLS certificate and forward decrypted traffic into the tunnel. A stock Caddy install does the whole job - no custom build needed. The `Caddyfile` on the VPS:
 
 ```
-{
-    layer4 {
-        :853 {
-            @dot tls sni dns.yourdomain.com
-            route @dot {
-                tls {
-                    connection_policy {
-                        alpn dot
-                    }
-                }
-                proxy tcp/127.0.0.1:2053
-            }
-        }
-    }
-}
-
 yourdomain.com, *.yourdomain.com {
     reverse_proxy 127.0.0.1:8080
 }
 ```
 
-That's it on the VPS side: automatic HTTPS certs for the domain and every subdomain, all forwarded down the tunnel to port 8080, which autossh is already piping to the home server's port 80. Port 853 does the same for DNS-over-TLS, using Caddy's layer4 module to inspect the TLS SNI and route it to the forwarded DNS port instead.
+That's it on the VPS side: automatic HTTPS certs for the domain and every subdomain, all forwarded down the tunnel to port 8080, which autossh is already piping to the home server's port 80.
+
+<Note type="HELPFUL">
+Notice `reverse_proxy 127.0.0.1:8080` is plain HTTP, not HTTPS. The visitor-to-VPS leg is HTTPS, but the VPS-to-home leg doesn't need its own certificate: it never touches the public internet. It's a loopback connection on the VPS (`127.0.0.1`) that autossh happens to be piping through an already-encrypted SSH tunnel to the home server. TLS terminates once, at the VPS - encrypting it again for that hop would be redundant.
+</Note>
 
 ### 5. Caddy on the home server
 
@@ -199,20 +168,8 @@ http://*.yourdomain.com, http://yourdomain.com {
     handle @assistant {
         reverse_proxy host.docker.internal:8123
     }
-
-    @dns {
-        host dns.yourdomain.com
-        path /dns-query*
-    }
-    handle @dns {
-        reverse_proxy adguardhome:80
-    }
 }
 ```
-
-<Note type="HELPFUL">
-Layer for CrowdSec on the home-side Caddy if you want automated IP banning based on log patterns (bad logins, path scanning, known CVE probes). It reads Caddy's access log and can block offenders before they reach anything behind it - cheap insurance since the VPS is the one absorbing internet-wide scanner noise all day.
-</Note>
 
 ### 6. The domain
 

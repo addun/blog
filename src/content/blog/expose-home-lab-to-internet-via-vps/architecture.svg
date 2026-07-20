@@ -22,13 +22,11 @@
   <rect x="315" y="285" width="170" height="40" rx="6" fill="#1a365d"/>
   <text x="400" y="310" fill="#e2e8f0" font-size="14" text-anchor="middle">Caddy (public)</text>
 
-  <rect x="590" y="180" width="230" height="190" rx="10" fill="#2c3e50" stroke="#4299e1" stroke-width="2"/>
-  <text x="705" y="216" fill="#f7fafc" font-size="18" text-anchor="middle" font-weight="bold">Home server</text>
-  <text x="705" y="238" fill="#a0aec0" font-size="13" text-anchor="middle">no public IP</text>
-  <rect x="615" y="255" width="180" height="40" rx="6" fill="#1a365d"/>
-  <text x="705" y="280" fill="#e2e8f0" font-size="14" text-anchor="middle">Caddy (private)</text>
-  <rect x="615" y="305" width="180" height="40" rx="6" fill="#1a365d"/>
-  <text x="705" y="330" fill="#e2e8f0" font-size="14" text-anchor="middle">AdGuard Home</text>
+  <rect x="590" y="210" width="230" height="115" rx="10" fill="#2c3e50" stroke="#4299e1" stroke-width="2"/>
+  <text x="705" y="244" fill="#f7fafc" font-size="18" text-anchor="middle" font-weight="bold">Home server</text>
+  <text x="705" y="266" fill="#a0aec0" font-size="13" text-anchor="middle">no public IP</text>
+  <rect x="615" y="280" width="180" height="40" rx="6" fill="#1a365d"/>
+  <text x="705" y="305" fill="#e2e8f0" font-size="14" text-anchor="middle">Caddy (private)</text>
 
   <rect x="920" y="130" width="250" height="52" rx="8" fill="#1a365d" stroke="#4a5568" stroke-width="1.5"/>
   <text x="1045" y="163" fill="#e2e8f0" font-size="14" text-anchor="middle">Immich</text>
@@ -49,9 +47,9 @@
   <line x1="585" y1="290" x2="510" y2="290" stroke="#63b3ed" stroke-width="2.5" marker-end="url(#arrow)"/>
   <text x="547" y="245" fill="#bee3f8" font-size="12" text-anchor="middle">SSH tunnel</text>
 
-  <line x1="795" y1="275" x2="915" y2="156" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
-  <line x1="795" y1="275" x2="915" y2="226" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
-  <line x1="795" y1="275" x2="915" y2="296" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
-  <line x1="795" y1="275" x2="915" y2="366" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="795" y1="300" x2="915" y2="156" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="795" y1="300" x2="915" y2="226" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="795" y1="300" x2="915" y2="296" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="795" y1="300" x2="915" y2="366" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
   </g>
 </svg>
