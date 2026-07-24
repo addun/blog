@@ -23,10 +23,9 @@ if (asNumber !== 0 && !isNaN(asNumber)) {
 const startsWithBlog = url.pathname.startsWith("/blog/");
 
 if (startsWithBlog) {
-  const id = url.pathname.split("/")[2];
+  const id = url.pathname.split("/")[2]?.toLowerCase();
 
   const blogs = await getCollection("blog");
-  // by default URL is lowercase so no need to lowercase `id` from URL
   const perhapsEntry = blogs.find((entry) => entry.data.id.toLowerCase() === id);
 
   if (perhapsEntry !== undefined) {
