@@ -57,13 +57,13 @@ A few hours of real Caddy access log entries, straight from Loki - the DNS-over-
 
 Everything runs as docker-compose projects on the home server itself - nothing sent off to a third party:
 
-| Component         | Role                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------- |
-| **Caddy**         | reverse proxy, writes structured JSON access logs, exposes admin metrics on `:2019`     |
-| **Grafana Alloy** | discovers containers, tails their logs, parses JSON, enriches with GeoIP, ships to Loki |
-| **Loki**          | stores the logs, 30 day retention                                                       |
-| **Prometheus**    | scrapes metrics from itself and Caddy every 15s                                         |
-| **Grafana**       | one pane of glass over Loki + Prometheus                                                |
+| Component                                        | Role                                                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **[Caddy](https://caddyserver.com/)**             | reverse proxy, writes structured JSON access logs, exposes admin metrics on `:2019`     |
+| **[Grafana Alloy](https://grafana.com/docs/alloy/latest/)** | discovers containers, tails their logs, parses JSON, enriches with GeoIP, ships to Loki |
+| **[Loki](https://grafana.com/oss/loki/)**         | stores the logs, 30 day retention                                                       |
+| **[Prometheus](https://prometheus.io/)**          | scrapes metrics from itself and Caddy every 15s                                         |
+| **[Grafana](https://grafana.com/oss/grafana/)**   | one pane of glass over Loki + Prometheus                                                |
 
 ## Getting logs into Loki
 
