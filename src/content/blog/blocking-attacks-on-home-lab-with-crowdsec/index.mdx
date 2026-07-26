@@ -107,9 +107,9 @@ networks:
 CrowdSec only needs read access to `caddy/logs` - it never touches the request path directly, it just tails the same file Caddy is already writing to.
 
 <Note type="IMPORTANT">
-  `BOUNCER_KEY_CADDY` isn't invented locally - it's registered against CrowdSec's local API first, with `cscli
-  bouncers add caddy-bouncer`, which prints the key to put in `.env`. Registering it any other way (or reusing a key)
-  just gets that bouncer rejected on its next poll.
+  `BOUNCER_KEY_CADDY` isn't invented locally - it's registered against CrowdSec's local API first, with `cscli bouncers
+  add caddy-bouncer`, which prints the key to put in `.env`. Registering it any other way (or reusing a key) just gets
+  that bouncer rejected on its next poll.
 </Note>
 
 ### 3. Wiring the bouncer into Caddy
@@ -118,10 +118,10 @@ CrowdSec only needs read access to `caddy/logs` - it never touches the request p
 {
 	order crowdsec first
 
-    crowdsec {
-        api_url http://crowdsec:8080
-        api_key {$CROWDSEC_API_KEY}
-    }
+  crowdsec {
+    api_url http://crowdsec:8080
+    api_key {$CROWDSEC_API_KEY}
+  }
 }
 
 yourdomain.com, *.yourdomain.com {
@@ -131,13 +131,36 @@ yourdomain.com, *.yourdomain.com {
 	handle @photos {
 		reverse_proxy immich:2283
 	}
+
 	# ... other subdomains
 }
 ```
 
-`order crowdsec first` in the global block makes the bouncer the very first thing that runs on every request, ahead of routing or the reverse proxy itself - a banned IP gets a `403` before Caddy even decides which upstream it was asking for. The `crowdsec` line inside the site block is what actually turns the check on for that domain; it's deliberately not applied to the `*.home.arpa` block, since LAN-only traffic never leaves the local network in the first place.
+`order crowdsec first` in the global block makes the bouncer the very first thing that runs on every request, ahead of routing or the reverse proxy itself - a banned IP gets a `403` before Caddy even decides which upstream it was asking for. The `crowdsec` line inside the site block is what actually turns the check on for that domain.
 
 Under the hood the plugin defaults to polling CrowdSec's local API every 60 seconds and caching the decision list in memory (`stream` mode), rather than making a network call per request - a banned IP is rejected from the in-memory cache, not by querying CrowdSec live each time. That trade-off means a newly-banned IP can slip through for up to a minute after the ban is created, in exchange for zero added latency on every request.
+
+### 4. Optional: banning a whole country
+
+CrowdSec already resolves the origin country of every alert via GeoIP - the same `crowdsec/data` directory that ships the attack signature lists also bundles `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb`, and an `s00-enrich` postoverflow stage attaches the resolved country code to `Alert.Source.Cn` before the alert ever reaches a profile. That makes country-based banning a `profiles.yaml` rule, not a separate integration:
+
+```yaml
+name: geofencing_profile
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip" && Alert.Source.Cn != "PL"
+decisions:
+  - type: ban
+    duration: 24h
+on_success: break
+```
+
+Any IP-scoped alert whose GeoIP country *isn't* `PL` gets a flat 24-hour ban, regardless of which scenario actually fired. `on_success: break` stops the profile pipeline there, so this rule doesn't also fall through to whatever the default profile would otherwise have decided.
+
+<Note type="HELPFUL">
+  This is a whitelist, not a blacklist - for a home lab domain with no legitimate reason to be reached from outside its
+  own country, banning everything except the one country real traffic comes from blocks a much larger slice of the noise
+  in a single rule than blacklisting individual countries ever would.
+</Note>
 
 ## What it actually caught
 
@@ -145,40 +168,32 @@ A week of exposure gives `cscli metrics` something to show. Scenarios that fired
 
 | Scenario | Hits |
 |---|---|
-| `crowdsecurity/http-probing` | 40 |
-| `crowdsecurity/http-crawl-non_statics` | 30 |
-| `crowdsecurity/http-wordpress-scan` | 26 |
-| `crowdsecurity/http-admin-interface-probing` | 28 |
-| `crowdsecurity/http-backdoors-attempts` | 14 |
-| `crowdsecurity/http-sensitive-files` | 10 |
-| `crowdsecurity/http-bad-user-agent` | 11 |
-| `crowdsecurity/http-technology-probing` | 8 |
-| `crowdsecurity/jira_cve-2021-26086` | 3 |
-| `crowdsecurity/apache_log4j2_cve-2021-44228` | 2 |
-| `crowdsecurity/http-cve-2021-41773` | 2 |
-| `crowdsecurity/CVE-2017-9841` | 2 |
-| `crowdsecurity/thinkphp-cve-2018-20062` | 1 |
-| `crowdsecurity/pulse-secure-sslvpn-cve-2019-11510` | 1 |
+| `http-probing` | 40 |
+| `http-crawl-non_statics` | 30 |
+| `http-admin-interface-probing` | 28 |
+| `http-wordpress-scan` | 26 |
+| `http-backdoors-attempts` | 14 |
+| everything else (bad user agents, sensitive-file probes, tech fingerprinting, Jira/Log4Shell/ThinkPHP/Pulse Secure CVE probes) | 40 |
 
 None of those services are actually running here - no WordPress, no Jira, no ThinkPHP, no Pulse Secure VPN. Every hit is a scanner trying its luck against a domain it knows nothing about.
 
 The decision counts make the CAPI network effect obvious:
 
-| Reason | Origin | Action | Count |
-|---|---|---|---|
-| `http:scan` | CAPI | ban | 29,952 |
-| `http:exploit` | CAPI | ban | 703 |
-| `http:bruteforce` | CAPI | ban | 353 |
-| `http:crawl` | CAPI | ban | 91 |
-| local scenarios (probing, wordpress-scan, backdoors, admin-interface, crawl) | crowdsec | ban | 3 each |
+| Reason                                                                       | Origin   | Action | Count  |
+| ---------------------------------------------------------------------------- | -------- | ------ | ------ |
+| `http:scan`                                                                  | CAPI     | ban    | 29,952 |
+| `http:exploit`                                                               | CAPI     | ban    | 703    |
+| `http:bruteforce`                                                            | CAPI     | ban    | 353    |
+| `http:crawl`                                                                 | CAPI     | ban    | 91     |
+| local scenarios (probing, wordpress-scan, backdoors, admin-interface, crawl) | crowdsec | ban    | 3 each |
 
 Locally-detected bans are a handful - this one server simply hasn't been probed enough times yet to trigger its own thresholds for most scenarios. The other ~31,000 bans came pre-loaded from CAPI: IPs the wider CrowdSec community had already flagged for the exact same behavior elsewhere, blocked here on first contact instead of after this server got probed enough times to notice on its own.
 
 <Note type="HELPFUL">
-  Acquisition metrics tell the same story from a different angle: of ~32.7k Caddy log lines parsed, ~8k got
-  whitelisted outright (the `whitelist-good-actors` collection excludes known-good crawlers like Googlebot's real IP
-  ranges from ever being scored as an attacker), and ~22.6k were poured into scenario buckets for evaluation. Whitelisting
-  matters as much as detection - without it, legitimate search engine indexing looks identical to a slow crawl scenario.
+  Acquisition metrics tell the same story from a different angle: of ~32.7k Caddy log lines parsed, ~8k got whitelisted
+  outright (the `whitelist-good-actors` collection excludes known-good crawlers like Googlebot's real IP ranges from
+  ever being scored as an attacker), and ~22.6k were poured into scenario buckets for evaluation. Whitelisting matters
+  as much as detection - without it, legitimate search engine indexing looks identical to a slow crawl scenario.
 </Note>
 
 ## What it isn't
