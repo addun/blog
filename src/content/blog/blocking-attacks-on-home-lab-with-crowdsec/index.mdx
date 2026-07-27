@@ -203,4 +203,17 @@ Locally-detected bans are a handful - this one server simply hasn't been probed 
 
 CrowdSec is behavior-based blocking derived from log lines, not a full WAF (Web Application Firewall - a layer that inspects individual request contents, like headers, bodies, and query strings, against rules to block malicious payloads before they reach the app) - it doesn't inspect request bodies, doesn't terminate and re-parse TLS, and won't catch a one-shot exploit that doesn't match a known scenario pattern or repeat often enough to cross a threshold. It also does nothing about raw request volume by itself; pairing it with Caddy's own `rate_limit` directive covers the case CrowdSec's threshold-based scenarios are slower to react to.
 
-What it's good at is exactly the noise shown above: the constant, automated background scanning every public IP receives, filtered out before it reaches anything actually running behind Caddy - largely for free, by trusting reports from everyone else running the same setup.
+That last point is really a consequence of what CrowdSec fundamentally is: a log analyzer, not an inline traffic inspector. Caddy writes the access log entry for a request, *then* CrowdSec's log-tailer picks it up, parses it, and evaluates it against scenarios - the request itself has already been forwarded to the upstream service by the time any of that happens. For a scenario like `http-wordpress-scan` that needs "N distinct `/wp-*` paths from the same IP within Y minutes", the first handful of those paths are, by construction, let through while the count is still below N - the ban only exists once the pattern is already established.
+
+<Note type="HELPFUL">
+  This isn't a shortcoming so much as the trade-off that makes CrowdSec work at all - scoring single requests in isolation
+  can't distinguish a scanner's first probe from a real visitor's first request; only a pattern across several requests
+  can. That's exactly why the CAPI blocklist matters so much in the numbers above: for the ~31,000 CAPI-sourced bans,
+  someone else's server already paid the cost of that first probe long before this one did, so on this server the ban is
+  live before a first request ever arrives. Self-detected scenarios don't get that head start - they're inherently
+  after-the-fact, deciding on request 5 that requests 1 through 4 were part of an attack.
+</Note>
+
+Where this matters is a single well-formed exploit attempt that doesn't need to repeat and doesn't match any known scenario shape - nothing in the log-analysis model is built to catch that inline, no matter how good the scenarios get. That's the gap a real WAF fills: something sitting in the live request path that inspects *this* request's headers, body, and query string against rules before it ever reaches the upstream, with no dependency on a log line existing yet or a pattern building up across requests. CrowdSec's own answer to that is the [AppSec Component](https://docs.crowdsec.net/docs/appsec/intro) - an inline bouncer-side module that runs OWASP Core Rule Set-style checks against live requests, complementing rather than replacing the log-based scenarios described above. Worth a follow-up once the log-based setup here has been running long enough to tune WAF rules against this traffic without drowning in false positives.
+
+What it's good at right now is exactly the noise shown above: the constant, automated background scanning every public IP receives, filtered out before it reaches anything actually running behind Caddy - largely for free, by trusting reports from everyone else running the same setup.
