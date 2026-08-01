@@ -1,9 +1,10 @@
 ---
-
+import { Image } from 'astro:assets';
+import aboutMeImg from '@content/images/about-me.jpg';
 ---
 
 <section class="my-20 flex flex-col sm:flex-row items-center gap-6 border-t border-gray-200 dark:border-gray-700 pt-10">
-  <img src="/about-me.jpg" alt="Portrait of the author" width={150} height={150} class="rounded-full shrink-0" />
+  <Image src={aboutMeImg} alt="Portrait of the author" width={150} height={150} class="rounded-full shrink-0" />
 
   <div>
     <h2 class="text-2xl font-semibold mb-3">About me</h2>
