@@ -33,6 +33,14 @@ This post fixes that, and throws in network-wide ad-blocking for free. By the en
 
 It builds directly on the Docker host from part 2. Let's get into it.
 
+## Why AdGuard Home, Not Pi-hole?
+
+The two obvious candidates for a self-hosted DNS/ad-blocker are [Pi-hole](https://github.com/pi-hole/pi-hole) and [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome). Both are lightweight, both block ads at the DNS level, both have a clean web dashboard - I tried them side by side before picking one.
+
+The deciding factor was **encrypted DNS**. AdGuard Home has **DNS-over-HTTPS (DoH)** and **DNS-over-TLS (DoT)** built in - both for serving encrypted queries to your own devices and for forwarding upstream to a provider like Cloudflare or Quad9, no extra software involved. Pi-hole doesn't support either natively; you'd need to bolt on `cloudflared` or a similar DoH/DoT proxy in front of it to get the same thing.
+
+Since we're using upstream DoH later in this guide (see Step 3), AdGuard Home was the simpler path - one container, no extra proxy to maintain.
+
 ## How the Pieces Fit Together
 
 Three things cooperate here, and it's worth seeing the whole picture before we build it:
