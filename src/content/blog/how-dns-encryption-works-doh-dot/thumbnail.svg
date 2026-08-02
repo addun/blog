@@ -1,0 +1,56 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a202c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lockGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4299e1;stop-opacity:0.35" />
+      <stop offset="100%" style="stop-color:#4299e1;stop-opacity:0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+
+  <g opacity="0.03">
+    <line x1="0" y1="63" x2="1200" y2="63" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="126" x2="1200" y2="126" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="189" x2="1200" y2="189" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="252" x2="1200" y2="252" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="315" x2="1200" y2="315" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="378" x2="1200" y2="378" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="441" x2="1200" y2="441" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="504" x2="1200" y2="504" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="567" x2="1200" y2="567" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- Glow behind the lock -->
+  <ellipse cx="600" cy="260" rx="220" ry="180" fill="url(#lockGlow)"/>
+
+  <!-- Padlock (encryption) -->
+  <g transform="translate(600,230)">
+    <rect x="-70" y="-10" width="140" height="120" rx="16" fill="#2b6cb0" stroke="#63b3ed" stroke-width="4"/>
+    <path d="M -45 -10 L -45 -55 A 45 45 0 0 1 45 -55 L 45 -10" fill="none" stroke="#63b3ed" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="0" cy="40" r="14" fill="#1a365d"/>
+    <rect x="-6" y="40" width="12" height="34" rx="6" fill="#1a365d"/>
+  </g>
+
+  <!-- Packet nodes flowing into the lock (cleartext -> encrypted) -->
+  <g stroke="#718096" stroke-width="3" fill="none" stroke-dasharray="6 6">
+    <line x1="180" y1="300" x2="520" y2="270"/>
+    <line x1="180" y1="380" x2="500" y2="330"/>
+  </g>
+  <circle cx="180" cy="300" r="10" fill="#a0aec0"/>
+  <circle cx="180" cy="380" r="10" fill="#a0aec0"/>
+
+  <g stroke="#63b3ed" stroke-width="3" fill="none">
+    <line x1="680" y1="270" x2="1000" y2="300"/>
+    <line x1="700" y1="330" x2="1020" y2="380"/>
+  </g>
+  <circle cx="1000" cy="300" r="10" fill="#63b3ed"/>
+  <circle cx="1020" cy="380" r="10" fill="#63b3ed"/>
+
+  <!-- Labels -->
+  <text x="600" y="470" font-family="monospace" font-size="34" font-weight="bold" fill="#e2e8f0" text-anchor="middle">DNS-over-TLS  /  DNS-over-HTTPS</text>
+  <text x="600" y="515" font-family="monospace" font-size="22" fill="#a0aec0" text-anchor="middle">encrypting the last unencrypted thing on the wire</text>
+</svg>
