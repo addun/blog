@@ -11,24 +11,14 @@ modified: "2026-08-02"
 
 import Note from "@components/Note.astro";
 
-## Introduction
-
-In [Home Lab DNS & Local Domains](/blog/Wm4Tn8) we pointed AdGuard Home's upstream servers at `https://1.1.1.1/dns-query` and `https://dns.quad9.net/dns-query` and moved on - "DNS-over-HTTPS, good and private, next step." That glossed over what's actually happening on the wire, and it's worth thirty seconds of theory because it explains a few things that otherwise look like magic: why a phone's "Private DNS" setting can silently skip your AdGuard box, why some networks can't block DoH no matter how hard they try, and why the two acronyms (DoT, DoH) aren't interchangeable.
-
 ## The Problem: Plain DNS Hides Nothing
 
-Ordinary DNS - the kind your router speaks by default - travels as **plaintext UDP on port 53**. When a device asks "what's the IP for `example.com`?", that query and its answer are readable by anyone who can see the traffic: your ISP, anyone on the same Wi-Fi, a coffee-shop router, a man-in-the-middle. Two consequences follow:
+When a device asks "what's the IP for `example.com`?", that query and its answer are readable by anyone who can see the traffic: your ISP, anyone on the same Wi-Fi, a coffee-shop router, a man-in-the-middle. It has some serious implications:
 
 - **Privacy.** Every domain you look up is visible in transit, even if the connection that follows is HTTPS. DNS is the part of "secure browsing" that historically wasn't secure at all.
-- **Tampering.** Because there's no authentication, a network in the middle can rewrite the answer - redirecting `bank.com` somewhere else, or (more mundanely) an ISP injecting ads into an NXDOMAIN response.
+- **Tampering.** Because there's no authentication, a network in the middle can rewrite the answer - redirecting `bank.com` somewhere else, or just returning a "not found" response to block access. This is how some ISPs implement parental controls, and how some governments implement censorship.
 
 Encrypted DNS fixes the first problem and, as a side effect of using TLS, gets you most of the second one too (the response is coming from a server whose certificate you can verify).
-
-<Note type="HELPFUL">
-
-This is a different concern from **DNSSEC**, which is about _authenticating_ that an answer wasn't forged, not about hiding the query from onlookers. You can have DNSSEC without encryption, and encryption without DNSSEC. Out of scope here.
-
-</Note>
 
 ## DNS-over-TLS (DoT)
 
@@ -45,7 +35,13 @@ That last point is DoT's defining trade-off - clean and simple, but easy to spot
 DoH takes the same idea - encrypt the query - but tunnels it inside a normal HTTPS request instead of giving it its own protocol.
 
 - **Port 443**, same as every other HTTPS website.
-- A DNS query becomes an HTTP request to a URL like `https://1.1.1.1/dns-query` (that URL you set as AdGuard's upstream in the previous post).
+- A DNS query becomes an HTTP request to a URL like `https://1.1.1.1/dns-query` (that URL you set as AdGuard's upstream in the previous post). Google runs one too at [https://dns.google/](https://dns.google/) - open it in browser, get JSON API for manual lookups, not just the DoH endpoint.
+
+<Note type="HELPFUL">
+
+Want to see DoH firsthand? Open [https://dns.google/](https://dns.google/), type `facebook.com` in search box. That page fires DoH query itself and shows raw JSON answer back.
+
+</Note>
 - To a network watching traffic, a DoH lookup is indistinguishable from any other HTTPS request. There's no separate port to block, and blocking it means blocking the whole resolver's IP - which, when that IP is Cloudflare or Google, means blocking a lot of collateral traffic too.
 
 This is also why browsers embraced DoH directly: Firefox and Chrome can ship their own hardcoded DoH resolver and quietly bypass whatever DNS the OS or router hands out, because from the network's perspective it's just another HTTPS connection to Cloudflare.
@@ -78,6 +74,41 @@ So the mental model from the previous post holds: AdGuard is a trusted local res
 **The browser bypass, explained.** In the [previous post](/blog/Wm4Tn8) we flagged that Android's "Private DNS" and some browsers quietly skip whatever DNS your router hands out. Now the mechanism is obvious: those features point straight at a DoH/DoT resolver of their own (Google, Cloudflare) instead of the DHCP-provided one, so the query never reaches AdGuard at all - no filtering, no `*.home.arpa` resolution, and it looks identical to normal HTTPS traffic, so you can't even block it at the router without blocking the resolver's whole IP range.
 
 Fix is the same as before: turn Android's Private DNS to **Automatic**, and in Firefox disable **"Enable DNS over HTTPS"** under `Settings → Privacy & Security` (Chrome: `Settings → Privacy and security → Security → Use secure DNS` → off, or set it to "With your current service provider" so it defers to AdGuard).
+
+</Note>
+
+## Configuring AdGuard Home
+
+Turning on DoH/DoT for the upstream leg is a **Settings → DNS settings** change, no restart needed.
+
+![AdGuard Home DNS settings page with upstream DNS servers field](./adguard-dns-settings.png)
+
+1. Open AdGuard Home web UI, go to **Settings → DNS settings**.
+2. In **Upstream DNS servers**, replace plain entries with DoH/DoT strings, one per line:
+
+```
+https://dns.cloudflare.com/dns-query
+https://dns.google/dns-query
+https://dns.quad9.net/dns-query
+tls://9.9.9.9
+tls://unfiltered.adguard-dns.com
+```
+
+- `https://...` lines are DoH.
+- `tls://...` lines are DoT.
+- Keep more than one line - AdGuard falls back to the next upstream if one fails.
+
+3. Scroll down, click **Test upstreams** to confirm each one resolves.
+
+![AdGuard Home test upstreams button and success result](./adguard-test-upstreams.png)
+
+4. Click **Apply**.
+
+<Note type="HELPFUL">
+
+To confirm AdGuard is actually using DoH/DoT and not silently falling back to plain port 53, open **Query Log**, click any entry, check the **DNS server** field in the response details - it should show the full `https://.../dns-query` or `tls://...` upstream, not a bare IP on port 53.
+
+![AdGuard Home Query Log entry detail showing DNS server field as https://dns.quad9.net:443/dns-query](./query-log.png)
 
 </Note>
 
