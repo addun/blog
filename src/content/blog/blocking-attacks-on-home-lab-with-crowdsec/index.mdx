@@ -36,6 +36,12 @@ CrowdSec is an open-source IPS modeled on fail2ban but built for structured log 
 The part that makes it more than a local fail2ban clone is CAPI - CrowdSec's Central API. Every participating instance can opt in to share anonymized attack signals (attacking IP, scenario matched, no request bodies or personal data), and in exchange pulls down a community blocklist of IPs every other participant has already flagged. In practice this means most mass scanners get banned on first contact, since someone else on the network has already seen and reported them.
 
 <Note type="HELPFUL">
+  CrowdSec's biggest advantage is that it runs on a community model (Crowd Security): if a bot scans another user's
+  server on the network, its IP lands in the shared CAPI blocklist - so this home lab can block it immediately, before
+  that bot ever gets to send a first request here.
+</Note>
+
+<Note type="HELPFUL">
   This is the same trust trade-off as Cloudflare, just inverted: nothing here decrypts or proxies your traffic through a
   third party, only attack *metadata* (IP, matched rule, timestamp) is shared outbound. Sharing can be disabled entirely
   and CrowdSec still works using local scenarios only - the enrolled network effect is what turns "ban after it happens
