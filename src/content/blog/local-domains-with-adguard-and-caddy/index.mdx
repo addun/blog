@@ -29,7 +29,7 @@ This post fixes that, and throws in network-wide ad-blocking for free. By the en
 - **AdGuard Home** filtering ads and trackers for _every_ device on your network - phones, TVs, laptops - at the DNS level.
 - A **Caddy reverse proxy** sitting in front of your containers.
 - Clean local domains like `http://portainer.home.arpa` and `http://dns.home.arpa` instead of IP-and-port.
-- Your **router** handing those superpowers to the whole house automatically.
+- Your **router** applying both to every device on the network automatically.
 
 It builds directly on the Docker host from part 2. Let's get into it.
 
@@ -110,6 +110,7 @@ services:
       - 53:53/tcp
       - 53:53/udp # DNS itself
       - 3000:3000/tcp # first-run setup wizard
+      - 7080:80/tcp # admin panel, so it's reachable without Caddy
     networks:
       - reverse-proxy
 
@@ -118,7 +119,7 @@ networks:
     name: reverse-proxy
 ```
 
-A couple of things to notice. We publish **port 53** (that's the DNS service the whole network will use) and **port 3000** (only needed for the one-time setup wizard). And we attach the container to a network called `reverse-proxy` - a shared network that Caddy will also join later, so the two can talk to each other by container name. Compose creates it automatically the first time.
+A couple of things to notice. We publish **port 53** (that's the DNS service the whole network will use), **port 3000** (only needed for the one-time setup wizard), and **port 7080** mapped to the container's port 80 - that's the admin panel, reachable straight from the host at `192.168.68.110:7080` for as long as you need it, no Caddy or DNS rewrite required. And we attach the container to a network called `reverse-proxy` - a shared network that Caddy will also join later, so the two can talk to each other by container name. Compose creates it automatically the first time.
 
 Bring it up:
 
@@ -137,7 +138,7 @@ http://192.168.68.110:3000
 
 (Use your server's IP.) The wizard walks you through a few screens:
 
-- **Admin web interface** - leave it on port **80**. (We don't publish 80 to the host because Caddy will own that port; you'll reach the dashboard through Caddy in a moment.)
+- **Admin web interface** - leave it on port **80**. Caddy will proxy to this internally (`adguardhome:80`), and we also mapped it to host port **7080** above, so it's reachable directly at `192.168.68.110:7080` too.
 - **DNS server** - port **53**, listening on all interfaces.
 - **Create your admin username and password.**
 
@@ -147,6 +148,13 @@ Once you finish, AdGuard is running and filtering. A few settings worth doing ri
 - **Filters → DNS blocklists** - the default AdGuard list is enabled out of the box; that alone blocks the bulk of ads and trackers.
 
 You now have a working ad-blocking DNS server. Nothing is _using_ it yet, though - that's the router's job.
+
+<Note type="IMPORTANT">
+
+**Port 3000 only serves the setup wizard.** Once you finish it, AdGuard switches its web UI over to the admin port (80) and stops answering on 3000 - visiting `http://192.168.68.110:3000` again just hangs or refuses.
+That's expected. After finishing the setup wizard, the dashboard stays reachable at `http://192.168.68.110:7080` from here on.
+
+</Note>
 
 ## Step 4: Point Your Router at AdGuard
 
@@ -337,16 +345,33 @@ http://portainer.home.arpa
 
 The request resolves through AdGuard to your server, Caddy reads the hostname and forwards to the right container, and you get a clean, memorable URL. Adding a new service from now on is two small steps: a `handle` block in the Caddyfile, and - thanks to the wildcard - nothing at all in AdGuard.
 
-## Step 7: Commit It
+<Note type="HELPFUL">
 
-Same habit as part 2 - your config is code. From `~/apps`:
+Both `portainer.home.arpa` and `dns.home.arpa` work through Caddy, so the direct, unproxied routes into those apps aren't needed anymore:
 
-```bash
-git add adguardhome/docker-compose.yaml proxy/
-git commit -m "Add AdGuard Home and Caddy reverse proxy"
+- **AdGuard:** remove the `7080:80/tcp` line we added back in Step 2, so the admin panel is reachable only through Caddy at `dns.home.arpa`. The `3000:3000/tcp` wizard port can go too - it already stopped serving anything once the wizard finished (see the note in Step 3).
+- **Portainer:** if you still have the `9443:9443` mapping from part 2, remove it too - it's the same HTTPS admin port Caddy now proxies to over plain HTTP internally.
+
+`~/apps/adguardhome/docker-compose.yaml`:
+
+```diff
+    ports:
+      - 53:53/tcp
+      - 53:53/udp # DNS itself
+-     - 3000:3000/tcp # first-run setup wizard
+-     - 7080:80/tcp # admin panel, so it's reachable without Caddy
 ```
 
-Make sure your `.gitignore` still excludes the data directories (`adguardhome/work`, `adguardhome/conf`, `proxy/data`) so you commit the _recipe_, never the runtime data or any secrets.
+`~/apps/portainer/docker-compose.yaml`:
+
+```diff
+-   ports:
+-     - 9443:9443
+```
+
+Drop the lines from each `docker-compose.yaml` and re-apply with `docker compose up -d` in each folder. From here on, port **80** on Caddy is the only door into the home lab from the LAN - everything else stays private on the `reverse-proxy` network, which is exactly the point of putting a reverse proxy in front in the first place.
+
+</Note>
 
 ## What's Next?
 
