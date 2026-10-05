@@ -22,7 +22,7 @@
     "@angular/language-service": "20.3.25",
     "@angular/platform-browser": "20.3.25",
     "@angular/platform-browser-dynamic": "20.3.25",
-    "@angular/platform-server": "20.3.25",
+    "@angular/platform-server": "20.3.33",
     "@astrojs/check": "^0.9.9",
     "@astrojs/mdx": "^6.0.3",
     "@astrojs/netlify": "^7.0.13",
