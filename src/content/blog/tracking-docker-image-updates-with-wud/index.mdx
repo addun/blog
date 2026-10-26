@@ -16,14 +16,46 @@ import GitHubLink from "@components/GitHubLink.astro";
 
 ## The problem
 
-Every service in home lab is a Docker Compose stack with a **pinned** image tag - `immich-server:v3.3.5`, `home-assistant:2026.10.2`, `grafana:13.2.4`.
-The cost of pinning is that nothing tells you a new version exists.
+Every service in home lab is a Docker Compose stack with a **pinned** image tag:
+
+```yaml
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v3.3.5
+    # rest of config
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.10.2
+    # rest of config
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    # rest of config
+```
+
+Now, to get info about new version, I would have to manually check each image's repository for updates.
 With ~40 containers across a many different compose files, "check for updates" means visiting a dozen GitHub release pages.
 
+## Potential solutions
+
 The usual answer is [Watchtower](https://containrrr.dev/watchtower/) - a container that pulls new images and restarts containers automatically.
-That's the opposite of what pinning is for. I want something that **tells** me what's outdated and leaves the decision to me.
+But that goes against the principle of pinning: I don't want my containers to update automatically. I just want to be informed about new versions.
+What is more, I have no idea which version each container is currently running without inspecting the compose files or querying the Docker daemon.
+
+Also there are problems with breaking changes: if an image updates automatically, it might introduce changes that are incompatible with my setup.
+At the end, backup strategy is the critical part: if an image updates automatically and breaks something, I need a way to roll back to a known good state.
+
+## Human-in-the-loop approach
+
+The idea is to have a system that monitors for updates but leaves the decision-making to the human operator.
+This way, I can stay informed about new versions without risking automatic updates that might break my setup.
+
+The expected solution is to have a tool that continuously monitors the Docker environment for updates and reports them, while leaving the actual update process to the human operator.
+Because I am using pinned tags for my containers (in docker-compose files), I need a tool that can detect updates and can apply them automatically to the compose files, but only when I decide to do so.
 
 ## What WUD is
+
+After some research and experimentation, I found that WUD perfectly fits the human-in-the-loop approach I described above.
 
 [WUD](https://getwud.github.io/wud/) (What's Up Docker, [source on GitHub](https://github.com/getwud/wud)) is a single container that:
 
@@ -33,13 +65,6 @@ That's the opposite of what pinning is for. I want something that **tells** me w
 
 The important part is what it _doesn't_ do by default: it never pulls, never restarts, never edits a file. It only detects.
 For a pinned-tag setup that's exactly the right split.
-
-<Note type="HELPFUL">
-  WUD understands two kinds of update. A **tag** update means a newer version exists (`2026.10.2` → `2026.10.3`). A
-  **digest** update means the same tag now points to a different image - what happens to `latest` or `3` style tags when
-  the maintainer rebuilds. With pinned semver tags, almost everything is a tag update, which is also the only kind that
-  can be applied by editing a compose file.
-</Note>
 
 ## The setup
 
@@ -55,18 +80,10 @@ services:
       - ./wud/store:/store
     restart: unless-stopped
     environment:
-      - TZ=Europe/Warsaw
       - WUD_WATCHER_LOCAL_CRON=0 6 * * *
       - WUD_AUTH_ADMIN_USER=${WUD_ADMIN_USER}
       - WUD_AUTH_ADMIN_PASSWORD=${WUD_ADMIN_PASSWORD}
 ```
-
-What each block does:
-
-- **The Docker socket, read-only.** This is how WUD sees the other containers. `:ro` stops WUD from _writing_ to the socket file itself, but a process with socket access can still read everything about every container - including environment variables. Treat it as a privileged container.
-- **`./wud/store`** keeps WUD's state (a SQLite database) across restarts, so it remembers what it already reported.
-- **`WUD_WATCHER_LOCAL_CRON=0 6 * * *`** - the `local` watcher is the Docker daemon on this machine, and this is a plain cron expression: scan every day at 06:00. Registry lookups are rate limited on some registries, so once a day is plenty.
-- **`WUD_AUTH_ADMIN_*`** - WUD 9 requires authentication, so the API is behind basic auth. The values come from a `.env` file next to the compose file, which stays out of git.
 
 ## What it looks like in practice
 
@@ -127,8 +144,6 @@ immich-machine-learning:
   so `$$` is how you write a literal `$` in a label value. Inside the container the regex ends with a plain `$`.
 </Note>
 
-The rule I follow: **fix noise in WUD, not in the script**. The tag WUD recommends is the single source of truth for what "newer" means, and every consumer of the API - the mail, the script - sees the same answer.
-
 ## From "update available" to a compose diff
 
 Now the problem is half solved. I don't want automatic updates and I don't want `latest` (or any floating tag), so the only way to apply an update is to **bump the version in the compose file myself**. The flow is simple:
@@ -136,11 +151,12 @@ Now the problem is half solved. I don't want automatic updates and I don't want 
 1. Ask WUD what is out of date.
 2. Based on the response, bump the version in the right compose file.
 
-With ~40 containers that is a long, boring job, and the kind of thing that stops happening. So I wrote a script that does it. It's a small Bash script (`jq`, `curl`, `perl`) that lives in the same repository as the compose files, and it does exactly this:
+With ~40 containers that is a long, boring job, and the kind of thing that stops happening.
+So I wrote a script that does it. It's a small Bash script (`jq`, `curl`, `perl`) that lives in the same repository as the compose files, and it does exactly this:
 
 1. **Asks the WUD API** for the list of containers.
-2. **For every outdated one, finds the compose file, the service and the old version.** WUD gives all three: the new tag in `result.tag`, the old one in `updateKind.localValue`, and the compose file path in the `com.docker.compose.*` labels. Only `tag` updates are used, because a digest-only update has no new tag to write into a file.
-3. **Replaces the old version with the new one** in that file - after checking that the old `image:tag` really is there. If it isn't (for example I already edited the file but didn't redeploy), the container is skipped with a warning. The script never edits a file on a guess.
+2. **For every outdated one**, finds the compose file, the service and the old version.
+3. **Replaces the old version with the new one** in that file.
 4. **Prints the command to deploy the change** - it never pulls images or restarts anything.
 
 ```
@@ -149,19 +165,18 @@ With ~40 containers that is a long, boring job, and the kind of thing that stops
 📦 Updates available:
      #  CONTAINER              FILE                               CHANGE
      1  homeassistant          smart-home/docker-compose.yml      home-assistant:2026.10.2  →  home-assistant:2026.10.3
-
-⚠️  Skipped (current tag not found in compose — running container may be out of sync):
-   authelia               looked for authelia:4.39.14           in authelia/docker-compose.yml
 ```
 
-That's real output from the server. The Authelia warning is the script doing its job: the running container is on `4.39.14`, the compose file already says something else, and the script leaves it alone until I redeploy and sort that out.
-
-Without flags the script opens a checkbox list where I pick which updates to apply - space toggles, enter applies, escape cancels:
+That's real output from the server. As you can see, it lists the container, the compose file, and the change from the old tag to the new one.
+What is more I can run interactive updates with the script, selecting which updates to apply and which to skip.
 
 ![Terminal checklist titled "WUD updates" with one entry: homeassistant, home-assistant:2026.10.2 to 2026.10.3](./script-selection.webp)
 
-`--dry-run` only shows the list and `--yes` applies everything without asking.
+<Note type="HELPFUL">
+  The script can be run with flag `--dry-run` to show only the list of updates without applying them.
+</Note>
 
+<Note type="HELPFUL">
 Because the whole `apps` folder is a git repository, the result is an ordinary diff - that's the review step:
 
 ```
@@ -171,12 +186,13 @@ Review first with:  git diff -- '*docker-compose*'
    docker compose -f "smart-home/docker-compose.yml" up -d --pull always homeassistant
 ```
 
-If the diff looks fine, I run the printed `docker compose` command, check that the service came back healthy and commit.
+</Note>
 
-## The routine
+If the changes look fine, I run the printed `docker compose` command, check that the service came back healthy and commit.
 
-- **06:00** - WUD scans the host and updates its list.
-- **When I have a few minutes** - run the script with `--dry-run` to see the list, then again to select what I want now.
-- Read the release notes for anything where `semverDiff` isn't `patch`, review the diff, run the printed `docker compose ... up -d --pull always <service>`, and commit.
+## The final solution
 
-Updating one stack at a time, with a diff to read and a git history to revert, is slower than [Watchtower](https://containrrr.dev/watchtower/) and that's the point: when Immich gets a bad release, I find out about it because I ran the update, and `git revert` plus one `docker compose up` puts it back.
+- Every day at 06:00, WUD scans the host and updates its list of available container updates.
+- **When I have a few minutes** - I run the script to check for available updates and apply them selectively.
+- **Run back-ups if necessary** - Before applying updates, ensure that I have recent backups.
+- **After applying updates** - I review the changes, run the necessary `docker compose` commands, and commit the updates to the repository.
