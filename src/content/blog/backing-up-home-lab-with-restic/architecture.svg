@@ -1,0 +1,32 @@
+<svg width="900" height="260" viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#63b3ed"/>
+    </marker>
+  </defs>
+  <rect width="900" height="260" rx="16" fill="#1a202c"/>
+
+  <g font-size="16" fill="#ffffff" text-anchor="middle">
+    <rect x="30" y="50" width="180" height="80" rx="10" fill="#2d3748" stroke="#63b3ed" stroke-width="3"/>
+    <text x="120" y="85">/home/.../apps</text>
+    <text x="120" y="108" fill="#a0aec0" font-size="13">NVMe, mounted :ro</text>
+
+    <rect x="360" y="50" width="180" height="80" rx="10" fill="#2d3748" stroke="#63b3ed" stroke-width="3"/>
+    <text x="450" y="85">backup container</text>
+    <text x="450" y="108" fill="#a0aec0" font-size="13">Go wrapper + restic, 05:00</text>
+
+    <rect x="690" y="50" width="180" height="80" rx="10" fill="#2d3748" stroke="#63b3ed" stroke-width="3"/>
+    <text x="780" y="85">/mnt/storage</text>
+    <text x="780" y="108" fill="#a0aec0" font-size="13">encrypted restic repo</text>
+
+    <rect x="360" y="180" width="180" height="50" rx="10" fill="#2d3748" stroke="#68d391" stroke-width="3"/>
+    <text x="450" y="211">mail-proxy</text>
+  </g>
+
+  <g stroke="#63b3ed" stroke-width="3" fill="none" marker-end="url(#arrow)">
+    <line x1="210" y1="90" x2="356" y2="90"/>
+    <line x1="540" y1="90" x2="686" y2="90"/>
+  </g>
+  <line x1="450" y1="132" x2="450" y2="176" stroke="#68d391" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="465" y="158" fill="#68d391" font-size="13">[OK] / [FAILED]</text>
+</svg>

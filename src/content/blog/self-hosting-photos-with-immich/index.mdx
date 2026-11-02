@@ -222,7 +222,7 @@ Your photos and videos are irreplaceable - there's no re-downloading the only co
 - **`~/apps/immich/library`** - the original photos and videos.
 - **`~/apps/immich/postgres`** - the database: albums, faces, the lot.
 
-Both need backing up to a _separate_ disk (and ideally an off-site copy too - the 3-2-1 rule). A simple recurring job that copies `library` and a database dump to `/mnt/storage/backups` is enough to start. Whatever you do, **test that you can restore it** before you trust it with the only copy.
+Both need backing up to a _separate_ disk (and ideally an off-site copy too - the 3-2-1 rule). A simple recurring job that copies `library` and a database dump to `/mnt/storage/backups` is enough to start. Whatever you do, **test that you can restore it** before you trust it with the only copy. My own setup - nightly restic snapshots, e-mail reports and a monthly restore drill - is described in [Backing Up a Home Lab with restic](/blog/Bk8Rst).
 
 <Note type="CRITICAL">
 
